@@ -15,42 +15,27 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blue,
+        fontFamily: 'Jakarta',
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.blue,
+        fontFamily: 'Jakarta',
+        scaffoldBackgroundColor: Color(0xFF121212),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Color(0xFF1F1F1F),
+          foregroundColor: Colors.white,
+        ),
+      ),
+      themeMode: ThemeMode.dark,
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
         '/home': (context) => HomeScreen(),
       },
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('Sonar voice chat'),
-          ],
-        ),
-      ),
     );
   }
 }

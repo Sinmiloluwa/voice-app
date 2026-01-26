@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.voiceapp"
+    namespace = "com.sinmiloluwa.voiceapp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

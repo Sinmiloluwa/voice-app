@@ -1,4 +1,4 @@
-package com.example.voiceapp
+package com.sinmiloluwa.voiceapp
 
 import io.flutter.embedding.android.FlutterActivity
 
