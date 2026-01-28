@@ -5,10 +5,41 @@ class SplashScreen extends StatefulWidget {
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
+  
 }
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _progressAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 10),
+      vsync: this,
+    );
+
+    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.linear),
+    );
+
+    _animationController.forward();
+
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
   static const Color primaryColor = Color(0xFFD4E157);
 
   @override
@@ -103,6 +134,9 @@ class _ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _SplashScreenState? state =
+        context.findAncestorStateOfType<_SplashScreenState>();
+
     return Positioned(
       bottom: 180,
       left: 40,
@@ -119,11 +153,16 @@ class _ProgressBar extends StatelessWidget {
               ),
             ],
           ),
-          child: const LinearProgressIndicator(
-            value: 0.5,
-            backgroundColor: Colors.white10,
-            color: Color(0xFFD4E157),
-            minHeight: 6,
+          child: AnimatedBuilder(
+            animation: state?._progressAnimation ?? AlwaysStoppedAnimation(0.0),
+            builder: (context, child) {
+              return LinearProgressIndicator(
+                value: state?._progressAnimation.value ?? 0.0,
+                backgroundColor: Colors.white10,
+                color: const Color(0xFFD4E157),
+                minHeight: 6,
+              );
+            },
           ),
         ),
       ),
