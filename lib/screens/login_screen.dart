@@ -48,7 +48,7 @@ class _BackButton extends StatelessWidget {
     return Row(
       children: [
         GestureDetector(
-          onTap: () => Navigator.pop(context),
+          onTap: () => Navigator.pushReplacementNamed(context, '/', arguments: {}),
           child: Container(
             width: 40,
             height: 40,
@@ -220,7 +220,7 @@ class _PasswordFieldState extends State<_PasswordField> {
         ),
         const SizedBox(height: 12),
         const Text(
-          'FORGOT?',
+          'Forgot password?',
           style: TextStyle(color: Color(0xFFD4E157), fontWeight: FontWeight.bold, fontSize: 12),
         ),
       ],
@@ -237,7 +237,7 @@ class _LoginButton extends StatelessWidget {
       height: 52,
       child: ElevatedButton(
         onPressed: () {
-          Navigator.pushReplacementNamed(context, '/home');
+          Navigator.pushReplacementNamed(context, '/home', arguments: {});
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFD4E157),
