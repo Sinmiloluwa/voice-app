@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:voiceapp/assets/constants.dart';
 import 'dart:math';
 import 'package:voiceapp/services/audio_player_service.dart';
 
@@ -24,14 +25,16 @@ class _HomeScreenState extends State<HomeScreen> {
           'https://ui-avatars.com/api/?name=Sarah&background=D4E157&color=000',
       timeAgo: '2 mins ago',
       duration: '0:45',
-      title: 'Storytime: That one time I got lost in Berlin after a concert... 🎵',
+      title:
+          'Storytime: That one time I got lost in Berlin after a concert... 🎵',
       waveformImage:
           'https://via.placeholder.com/400x80/1a1a1a/D4E157?text=Waveform1',
       tags: ['#travel', '#storytime'],
       likes: 1200,
       comments: 850,
       shares: 420,
-      audioUrl: 'https://pixabay.com/sound-effects/film-special-effects-thud-sound-effect-405470/#:~:text=99%20kB-,Download,-1.1K',
+      audioUrl:
+          'https://pixabay.com/sound-effects/film-special-effects-thud-sound-effect-405470/#:~:text=99%20kB-,Download,-1.1K',
     ),
     AudioPost(
       id: '2',
@@ -102,12 +105,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            Positioned(
-              bottom: 80,
-              right: 20,
-              child: _FloatingMicButton(),
-            ),
+            // Positioned(
+            //   bottom: 80,
+            //   right: 20,
+            //   child: _FloatingMicButton(),
+            // ),
           ],
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Constants.primaryColor,
+        onPressed: () {
+          print('Tapped');
+          Navigator.pushNamed(context, '/view');
+        },
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Constants.primaryColor,
+            boxShadow: [
+              BoxShadow(
+                color: Constants.primaryColor.withOpacity(0.4),
+                blurRadius: 12,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: const Icon(Icons.mic, color: Colors.black, size: 24),
         ),
       ),
       bottomNavigationBar: _BottomNavBar(
@@ -171,10 +198,7 @@ class _TabBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTabSelected;
 
-  const _TabBar({
-    required this.selectedIndex,
-    required this.onTabSelected,
-  });
+  const _TabBar({required this.selectedIndex, required this.onTabSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +214,10 @@ class _TabBar extends StatelessWidget {
             child: GestureDetector(
               onTap: () => onTabSelected(index),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: selectedIndex == index
                       ? HomeScreen.primaryColor
@@ -245,19 +272,19 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
     super.dispose();
   }
 
- void _togglePlayback() {
-  final audioService = AudioPlayerService();
-  setState(() {
-    _isPlaying = !_isPlaying;
-    if (_isPlaying) {
-      _waveformController.repeat();
-      audioService.playAudio(widget.post.audioUrl);
-    } else {
-      _waveformController.stop();
-      audioService.pauseAudio();
-    }
-  });
-}
+  void _togglePlayback() {
+    final audioService = AudioPlayerService();
+    setState(() {
+      _isPlaying = !_isPlaying;
+      if (_isPlaying) {
+        _waveformController.repeat();
+        audioService.playAudio(widget.post.audioUrl);
+      } else {
+        _waveformController.stop();
+        audioService.pauseAudio();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -278,8 +305,7 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                   children: [
                     CircleAvatar(
                       radius: 24,
-                      backgroundImage:
-                          NetworkImage(widget.post.avatar),
+                      backgroundImage: NetworkImage(widget.post.avatar),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -480,11 +506,7 @@ class _FloatingMicButton extends StatelessWidget {
             ),
           ],
         ),
-        child: const Icon(
-          Icons.mic,
-          color: Colors.black,
-          size: 24,
-        ),
+        child: const Icon(Icons.mic, color: Colors.black, size: 24),
       ),
     );
   }
@@ -552,10 +574,7 @@ class _Waveform extends StatelessWidget {
   final bool isPlaying;
   final AnimationController animationController;
 
-  const _Waveform({
-    required this.isPlaying,
-    required this.animationController,
-  });
+  const _Waveform({required this.isPlaying, required this.animationController});
 
   @override
   Widget build(BuildContext context) {
@@ -573,10 +592,8 @@ class _WaveformPainter extends CustomPainter {
   final bool isPlaying;
   final Animation<double> animation;
 
-  _WaveformPainter({
-    required this.isPlaying,
-    required this.animation,
-  }) : super(repaint: animation);
+  _WaveformPainter({required this.isPlaying, required this.animation})
+    : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -592,12 +609,12 @@ class _WaveformPainter extends CustomPainter {
 
     for (int i = 0; i < totalBars; i++) {
       final x = i * (barWidth + spacing) + 8;
-      
+
       // Generate pseudo-random height for each bar
       final seed = i * 12.5;
-      final baseHeight = (size.height * 0.3) + 
-          ((sin(seed) * 0.5 + 0.5) * size.height * 0.5);
-      
+      final baseHeight =
+          (size.height * 0.3) + ((sin(seed) * 0.5 + 0.5) * size.height * 0.5);
+
       // Animate bars when playing
       final animatedHeight = isPlaying
           ? baseHeight * (0.5 + 0.5 * sin(seed + animation.value).abs())
