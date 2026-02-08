@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:voiceapp/assets/constants.dart';
 import 'dart:math';
 import 'package:voiceapp/services/audio_player_service.dart';
+import 'package:voiceapp/screens/comment_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  static const Color primaryColor = Color(0xFFD4E157);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -34,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
       comments: 850,
       shares: 420,
       audioUrl:
-          'https://pixabay.com/sound-effects/film-special-effects-thud-sound-effect-405470/#:~:text=99%20kB-,Download,-1.1K',
+          'assets/audio/1.mp3',
     ),
     AudioPost(
       id: '2',
@@ -51,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
       likes: 450,
       comments: 170,
       shares: 89,
-      audioUrl: 'assets/audio/sample2.mp3',
+      audioUrl: 'assets/audio/2.mp3',
     ),
     AudioPost(
       id: '3',
@@ -68,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
       likes: 2100,
       comments: 340,
       shares: 560,
-      audioUrl: 'assets/audio/sample3.mp3',
+      audioUrl: 'assets/audio/3.mp3',
     ),
   ];
 
@@ -165,12 +166,12 @@ class _Header extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: HomeScreen.primaryColor.withOpacity(0.5),
+                color: Constants.primaryColor.withOpacity(0.5),
                 width: 2,
               ),
             ),
             child: const Center(
-              child: Icon(Icons.person, color: HomeScreen.primaryColor),
+              child: Icon(Icons.person, color: Constants.primaryColor),
             ),
           ),
           const Text(
@@ -220,7 +221,7 @@ class _TabBar extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: selectedIndex == index
-                      ? HomeScreen.primaryColor
+                      ? Constants.primaryColor
                       : Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: selectedIndex != index
@@ -369,7 +370,7 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                     height: 60,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: HomeScreen.primaryColor,
+                      color: Constants.primaryColor,
                     ),
                     child: Icon(
                       _isPlaying ? Icons.pause : Icons.play_arrow,
@@ -407,13 +408,13 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: HomeScreen.primaryColor.withOpacity(0.2),
+                          color: Constants.primaryColor.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           widget.post.tags[index],
                           style: const TextStyle(
-                            color: HomeScreen.primaryColor,
+                            color: Constants.primaryColor,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -429,12 +430,31 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                     _EngagementButton(
                       icon: Icons.favorite_outline,
                       count: widget.post.likes,
-                      color: HomeScreen.primaryColor,
+                      color: Constants.primaryColor,
                     ),
-                    _EngagementButton(
-                      icon: Icons.chat_bubble_outline,
-                      count: widget.post.comments,
-                    ),
+                  GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CommentScreen(
+                              postId: widget.post.id,
+                              originalAuthor: widget.post.displayName,
+                              originalTitle: widget.post.title,
+                              audioUrl: widget.post.audioUrl,
+                              duration: widget.post.duration,
+                              likes: widget.post.likes,
+                              commentCount: widget.post.comments,
+                            ),
+                          ),
+                        );
+                      },
+                      child: _EngagementButton(
+                        icon: Icons.chat_bubble_outline,
+                        count: widget.post.comments,
+                      ),
+                  ),
+
                     _EngagementButton(
                       icon: Icons.emoji_emotions_outlined,
                       count: widget.post.shares,
@@ -485,32 +505,7 @@ class _EngagementButton extends StatelessWidget {
   }
 }
 
-class _FloatingMicButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // TODO: Implement microphone recording
-      },
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: HomeScreen.primaryColor,
-          boxShadow: [
-            BoxShadow(
-              color: HomeScreen.primaryColor.withOpacity(0.4),
-              blurRadius: 12,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: const Icon(Icons.mic, color: Colors.black, size: 24),
-      ),
-    );
-  }
-}
+
 
 class _BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -548,7 +543,7 @@ class _BottomNavBar extends StatelessWidget {
                 Icon(
                   navItems[index]['icon'] as IconData,
                   color: selectedIndex == index
-                      ? HomeScreen.primaryColor
+                      ? Constants.primaryColor
                       : Colors.white30,
                 ),
                 const SizedBox(height: 4),
@@ -556,7 +551,7 @@ class _BottomNavBar extends StatelessWidget {
                   navItems[index]['label'] as String,
                   style: TextStyle(
                     color: selectedIndex == index
-                        ? HomeScreen.primaryColor
+                        ? Constants.primaryColor
                         : Colors.white30,
                     fontSize: 10,
                   ),
@@ -598,7 +593,7 @@ class _WaveformPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFD4E157)
+      ..color = Constants.primaryColor
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
 

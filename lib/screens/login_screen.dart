@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-
+import 'package:voiceapp/assets/constants.dart';
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
-  static const Color primaryColor = Color(0xFFD4E157);
+
 
   @override
   Widget build(BuildContext context) {
@@ -106,10 +106,10 @@ class _LogoCircle extends StatelessWidget {
       height: 100,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFFD4E157).withOpacity(0.5), width: 2),
+        border: Border.all(color: Constants.primaryColor.withOpacity(0.5), width: 2),
       ),
       child: const Center(
-        child: Icon(Icons.graphic_eq, size: 48, color: Color(0xFFD4E157)),
+        child: Icon(Icons.graphic_eq, size: 48, color: Constants.primaryColor),
       ),
     );
   }
@@ -221,7 +221,7 @@ class _PasswordFieldState extends State<_PasswordField> {
         const SizedBox(height: 12),
         const Text(
           'Forgot password?',
-          style: TextStyle(color: Color(0xFFD4E157), fontWeight: FontWeight.bold, fontSize: 12),
+          style: TextStyle(color: Constants.primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
         ),
       ],
     );
@@ -240,7 +240,7 @@ class _LoginButton extends StatelessWidget {
           Navigator.pushReplacementNamed(context, '/home', arguments: {});
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFD4E157),
+          backgroundColor: Constants.primaryColor,
           foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(26),
@@ -271,7 +271,7 @@ class _SignUpLink extends StatelessWidget {
           onTap: () {},
           child: const Text(
             'Sign up',
-            style: TextStyle(color: Color(0xFFD4E157), fontWeight: FontWeight.bold),
+            style: TextStyle(color: Constants.primaryColor, fontWeight: FontWeight.bold),
           ),
         ),
       ],

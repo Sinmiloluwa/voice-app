@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:voiceapp/assets/constants.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -40,7 +41,6 @@ class _SplashScreenState extends State<SplashScreen>
     _animationController.dispose();
     super.dispose();
   }
-  static const Color primaryColor = Color(0xFFD4E157);
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +72,7 @@ class _LogoBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFFD4E157);
+   
 
     return Container(
       width: 112,
@@ -80,7 +80,7 @@ class _LogoBox extends StatelessWidget {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: primaryColor.withOpacity(0.2),
+            color: Constants.primaryColor.withOpacity(0.2),
             blurRadius: 24,
             spreadRadius: 16,
           ),
@@ -92,7 +92,7 @@ class _LogoBox extends StatelessWidget {
       child: const Center(
         child: Icon(
           Icons.graphic_eq,
-          color: primaryColor,
+          color: Constants.primaryColor,
           size: 48,
         ),
       ),
@@ -105,7 +105,6 @@ class _TitleText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFFD4E157);
 
     return Column(
       children: const [
@@ -159,7 +158,7 @@ class _ProgressBar extends StatelessWidget {
               return LinearProgressIndicator(
                 value: state?._progressAnimation.value ?? 0.0,
                 backgroundColor: Colors.white10,
-                color: const Color(0xFFD4E157),
+                color: Constants.primaryColor,
                 minHeight: 6,
               );
             },
@@ -199,7 +198,7 @@ class _AudioBadge extends StatelessWidget {
             children: const [
               Icon(
                 Icons.graphic_eq,
-                color: Color(0xFFD4E157),
+                color: Constants.primaryColor,
                 size: 38,
               ),
               Text(
