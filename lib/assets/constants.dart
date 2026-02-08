@@ -9,4 +9,9 @@ class Constants {
     fontSize: 18,
     fontWeight: FontWeight.bold,
   );
+  static const TextStyle subHeadingStyle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.bold,
+    color: Constants.primaryColor
+  );
 }

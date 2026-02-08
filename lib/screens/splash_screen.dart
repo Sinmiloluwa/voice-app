@@ -30,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushReplacementNamed(context, '/main');
       }
     });
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:voiceapp/assets/constants.dart';
 import 'dart:math';
 import 'package:voiceapp/services/audio_player_service.dart';
 
@@ -14,7 +13,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedTabIndex = 0;
-  int _selectedNavIndex = 0;
 
   final List<AudioPost> audioPostsMockData = [
     AudioPost(
@@ -112,38 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
             // ),
           ],
         ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Constants.primaryColor,
-        onPressed: () {
-          print('Tapped');
-          Navigator.pushNamed(context, '/view');
-        },
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Constants.primaryColor,
-            boxShadow: [
-              BoxShadow(
-                color: Constants.primaryColor.withOpacity(0.4),
-                blurRadius: 12,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: const Icon(Icons.mic, color: Colors.black, size: 24),
-        ),
-      ),
-      bottomNavigationBar: _BottomNavBar(
-        selectedIndex: _selectedNavIndex,
-        onNavSelected: (index) {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-        },
       ),
     );
   }
@@ -507,64 +473,6 @@ class _FloatingMicButton extends StatelessWidget {
           ],
         ),
         child: const Icon(Icons.mic, color: Colors.black, size: 24),
-      ),
-    );
-  }
-}
-
-class _BottomNavBar extends StatelessWidget {
-  final int selectedIndex;
-  final Function(int) onNavSelected;
-
-  const _BottomNavBar({
-    required this.selectedIndex,
-    required this.onNavSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final navItems = [
-      {'icon': Icons.home, 'label': 'Home'},
-      {'icon': Icons.explore, 'label': 'Explore'},
-      {'icon': Icons.notifications, 'label': 'Alerts'},
-      {'icon': Icons.person, 'label': 'Profile'},
-    ];
-
-    return Container(
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        border: Border(top: BorderSide(color: Colors.white10)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(
-          navItems.length,
-          (index) => GestureDetector(
-            onTap: () => onNavSelected(index),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  navItems[index]['icon'] as IconData,
-                  color: selectedIndex == index
-                      ? HomeScreen.primaryColor
-                      : Colors.white30,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  navItems[index]['label'] as String,
-                  style: TextStyle(
-                    color: selectedIndex == index
-                        ? HomeScreen.primaryColor
-                        : Colors.white30,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
