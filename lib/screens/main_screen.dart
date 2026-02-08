@@ -16,42 +16,25 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedTabIndex = 0;
   int _selectedNavIndex = 0;
 
-   final List<Widget> _screens = const [
+  final List<Widget> _screens = const [
     HomeScreen(),
     DiscoverScreen(),
     NotificationScreen(),
-    ProfileScreen()
+    ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedNavIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedNavIndex, children: _screens),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
+        elevation: 6,
         backgroundColor: Constants.primaryColor,
         onPressed: () {
           Navigator.pushNamed(context, '/view');
         },
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Constants.primaryColor,
-            boxShadow: [
-              BoxShadow(
-                color: Constants.primaryColor.withOpacity(0.4),
-                blurRadius: 12,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: const Icon(Icons.mic, color: Colors.black, size: 24),
-        ),
+        child: const Icon(Icons.mic, color: Colors.black, size: 26),
       ),
       bottomNavigationBar: _BottomNavBar(
         selectedIndex: _selectedNavIndex,
@@ -83,41 +66,52 @@ class _BottomNavBar extends StatelessWidget {
       {'icon': Icons.person, 'label': 'Profile'},
     ];
 
-    return Container(
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        border: Border(top: BorderSide(color: Colors.white10)),
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 10,
+      color: Colors.black.withOpacity(0.9),
+      child: SizedBox(
+        height: 56,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _navItem(0, navItems[0]),
+            _navItem(1, navItems[1]),
+
+            const SizedBox(width: 56),
+
+            _navItem(2, navItems[2]),
+            _navItem(3, navItems[3]),
+          ],
+        ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(
-          navItems.length,
-          (index) => GestureDetector(
-            onTap: () => onNavSelected(index),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  navItems[index]['icon'] as IconData,
-                  color: selectedIndex == index
-                      ? HomeScreen.primaryColor
-                      : Colors.white30,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  navItems[index]['label'] as String,
-                  style: TextStyle(
-                    color: selectedIndex == index
-                        ? HomeScreen.primaryColor
-                        : Colors.white30,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
+    );
+  }
+
+  Widget _navItem(int index, Map item) {
+    return GestureDetector(
+      onTap: () => onNavSelected(index),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            item['icon'],
+            color: selectedIndex == index
+                ? Constants.primaryColor
+                : Colors.white30,
+            size: 34,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            item['label'],
+            style: TextStyle(
+              color: selectedIndex == index
+                  ? Constants.primaryColor
+                  : Colors.white30,
+              fontSize: 12,
             ),
           ),
-        ),
+        ],
       ),
     );
   }
