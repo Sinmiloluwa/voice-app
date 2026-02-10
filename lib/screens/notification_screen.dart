@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-class AlertsScreen extends StatefulWidget {
-  const AlertsScreen({Key? key}) : super(key: key);
+class NotificationScreen extends StatefulWidget {
+  const NotificationScreen({Key? key}) : super(key: key);
 
   static const Color primaryColor = Color(0xFFD4E157);
   static const Color backgroundColor = Color(0xFF0D0D0D);
   static const Color cardBackground = Color(0xFF1A1A1A);
 
   @override
-  State<AlertsScreen> createState() => _AlertsScreenState();
+  State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _AlertsScreenState extends State<AlertsScreen> {
+class _NotificationScreenState extends State<NotificationScreen> {
   int _selectedTabIndex = 0;
   final List<String> _tabs = ['All', 'Comments', 'Followers', 'Reads'];
 
@@ -19,7 +19,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
     Activity(
       type: ActivityType.voiceComment,
       userName: 'Sam',
-      userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBzhoZVHbEYm5sLGQT7i5zaSb-x93X1cokRyIgPHgBfrbgV80dt_w-zu5U63eyFjiNcv4P38FR8jdyQvybjygozjWaS_AfPOjs9Fnqi2i7Lat8EIJI96BNs_ut8FYZLSLIyGY3M3JlSNQk90LF3YMwyATw66SkXAH4gqn_rmbckAkWzlY3XVI9JL0BQ4xbePx0WNGeXYQrDILiL7c4yNhDvZPO_UyN7GYBw0o7DMwK3OOeAk78fQ_XPpzzxpP3cLVcOQ5Ub4TPfJd4',
+      userAvatar: 'https://via.placeholder.com/48/FF6B6B/FFFFFF?text=S',
       action: 'left a voice comment',
       timestamp: '1h ago',
       audioInfo: '0:15 audio',
@@ -80,7 +80,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AlertsScreen.backgroundColor,
+      backgroundColor: NotificationScreen.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -136,7 +136,7 @@ class _Header extends StatelessWidget {
             ),
             child: const Icon(
               Icons.done_all,
-              color: AlertsScreen.primaryColor,
+              color: NotificationScreen.primaryColor,
               size: 20,
             ),
           ),
@@ -171,10 +171,10 @@ class _TabNavigation extends StatelessWidget {
               margin: const EdgeInsets.only(right: 12),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                color: selectedIndex == index ? AlertsScreen.primaryColor : Colors.white.withOpacity(0.1),
+                color: selectedIndex == index ? NotificationScreen.primaryColor : Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: selectedIndex == index ? AlertsScreen.primaryColor : Colors.white10,
+                  color: selectedIndex == index ? NotificationScreen.primaryColor : Colors.white10,
                 ),
               ),
               child: Text(
@@ -211,7 +211,7 @@ class _ActivityCardState extends State<_ActivityCard> {
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AlertsScreen.cardBackground,
+        color: NotificationScreen.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white10),
       ),
@@ -235,7 +235,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                             height: 48,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: AlertsScreen.backgroundColor, width: 2),
+                              border: Border.all(color: NotificationScreen.backgroundColor, width: 2),
                             ),
                             child: CircleAvatar(
                               backgroundImage: NetworkImage(widget.activity.avatars![index]),
@@ -265,8 +265,8 @@ class _ActivityCardState extends State<_ActivityCard> {
                         height: 20,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AlertsScreen.primaryColor,
-                          border: Border.all(color: AlertsScreen.backgroundColor, width: 2),
+                          color: NotificationScreen.primaryColor,
+                          border: Border.all(color: NotificationScreen.backgroundColor, width: 2),
                         ),
                         child: Icon(
                           Icons.add,
@@ -346,7 +346,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                     height: 44,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AlertsScreen.primaryColor,
+                      color: NotificationScreen.primaryColor,
                     ),
                     child: Icon(
                       widget.activity.actionIcon,
@@ -365,7 +365,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: _isFollowing ? Colors.white.withOpacity(0.1) : AlertsScreen.primaryColor,
+                      color: _isFollowing ? Colors.white.withOpacity(0.1) : NotificationScreen.primaryColor,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: _isFollowing ? Colors.white10 : Colors.transparent,

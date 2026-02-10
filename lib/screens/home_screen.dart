@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:voiceapp/assets/constants.dart';
 import 'dart:math';
 import 'package:voiceapp/services/audio_player_service.dart';
 import 'package:voiceapp/screens/comment_screen.dart';
+import 'package:voiceapp/assets/constants.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -15,7 +15,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedTabIndex = 0;
-  int _selectedNavIndex = 0;
 
   final List<AudioPost> audioPostsMockData = [
     AudioPost(
@@ -113,38 +112,6 @@ class _HomeScreenState extends State<HomeScreen> {
             // ),
           ],
         ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Constants.primaryColor,
-        onPressed: () {
-          print('Tapped');
-          Navigator.pushNamed(context, '/view');
-        },
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Constants.primaryColor,
-            boxShadow: [
-              BoxShadow(
-                color: Constants.primaryColor.withOpacity(0.4),
-                blurRadius: 12,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: const Icon(Icons.mic, color: Colors.black, size: 24),
-        ),
-      ),
-      bottomNavigationBar: _BottomNavBar(
-        selectedIndex: _selectedNavIndex,
-        onNavSelected: (index) {
-          setState(() {
-            _selectedNavIndex = index;
-          });
-        },
       ),
     );
   }

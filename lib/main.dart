@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:voiceapp/screens/home_screen.dart';
+import 'package:voiceapp/screens/main_screen.dart';
 import 'package:voiceapp/screens/splash_screen.dart';
 import 'package:voiceapp/screens/login_screen.dart';
 import 'package:voiceapp/screens/view_screen.dart';
@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
-        '/home': (context) => HomeScreen(),
+        '/main': (context) => MainScreen(),
         '/login': (context) => const LoginScreen(),
         '/view': (context) => const ViewScreen(),
       },
