@@ -48,7 +48,7 @@ class _BackButton extends StatelessWidget {
     return Row(
       children: [
         GestureDetector(
-          onTap: () => Navigator.pushReplacementNamed(context, '/', arguments: {}),
+          onTap: () => Navigator.pushReplacementNamed(context, '/main', arguments: {}),
           child: Container(
             width: 40,
             height: 40,

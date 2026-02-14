@@ -7,6 +7,7 @@ class ViewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -137,7 +138,13 @@ class BottomPanel extends StatelessWidget {
             topRight: Radius.circular(40),
           ),
         ),
-        child: Column(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom > 0
+                ? MediaQuery.of(context).viewInsets.bottom
+                : MediaQuery.of(context).padding.bottom,
+          ),
+          child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Padding(
@@ -363,6 +370,7 @@ class BottomPanel extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

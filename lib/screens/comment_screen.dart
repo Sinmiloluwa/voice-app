@@ -123,12 +123,15 @@ class _CommentScreenState extends State<CommentScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: CommentScreen.backgroundColor,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             _Header(onBackPressed: () => Navigator.pop(context)),
             Expanded(
               child: SingleChildScrollView(
+                reverse: true,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
@@ -168,7 +171,14 @@ class _CommentScreenState extends State<CommentScreen>
                 ),
               ),
             ),
-            _ReplyInput(controller: _replyController),
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom > 0
+                    ? 0
+                    : MediaQuery.of(context).padding.bottom,
+              ),
+              child: _ReplyInput(controller: _replyController),
+            ),
           ],
         ),
       ),
