@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
+import 'package:voiceapp/providers/auth_provider.dart';
+import 'package:voiceapp/providers/profile_provider.dart';
+import 'package:voiceapp/models/voice_post.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,27 +19,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   int? _playingSnippetIndex;
   late AnimationController _waveformController;
 
-  final List<Snippet> _snippets = [
-    Snippet(
-      title: 'Monday Morning Rant',
-      emoji: '\u{1F921}',
-      timeAgo: '2 hours ago',
-      listens: '2.4k',
-      likes: '184',
-      currentTime: '0:42',
-      totalTime: '2:15',
-    ),
-    Snippet(
-      title: 'New Beat Demo [WIP]',
-      emoji: '\u{1F3B9}',
-      timeAgo: 'Yesterday',
-      listens: '8.1k',
-      likes: '1.2k',
-      currentTime: '0:00',
-      totalTime: '1:45',
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -43,6 +26,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfileProvider>().loadMyUploads();
+    });
   }
 
   @override
@@ -74,11 +60,28 @@ class _ProfileScreenState extends State<ProfileScreen>
               const SizedBox(height: 24),
               const _Avatar(),
               const SizedBox(height: 16),
-              const _UserInfo(),
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) {
+                  final user = auth.user;
+                  return _UserInfo(
+                    username: user?.username ?? 'unknown',
+                    bio: user?.bio ?? 'Voice-first creator.',
+                  );
+                },
+              ),
               const SizedBox(height: 24),
               const _ActionButtons(),
               const SizedBox(height: 24),
-              const _StatsRow(),
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) {
+                  final user = auth.user;
+                  return _StatsRow(
+                    followers: user?.followerCount ?? 0,
+                    following: user?.followingCount ?? 0,
+                    plays: user?.playCount ?? 0,
+                  );
+                },
+              ),
               const SizedBox(height: 24),
               _TabBar(
                 selectedIndex: _selectedTabIndex,
@@ -89,43 +92,78 @@ class _ProfileScreenState extends State<ProfileScreen>
                 },
               ),
               const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Recent Snippets',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Icon(
-                          Icons.tune,
-                          color: Colors.white.withOpacity(0.5),
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    ...List.generate(
-                      _snippets.length,
-                      (index) => Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: _SnippetCard(
-                          snippet: _snippets[index],
-                          isPlaying: _playingSnippetIndex == index,
-                          onPlayPressed: () => _togglePlayback(index),
-                          animationController: _waveformController,
+              Consumer<ProfileProvider>(
+                builder: (context, profileProvider, _) {
+                  if (profileProvider.isLoading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Constants.primaryColor,
                         ),
                       ),
+                    );
+                  }
+                  final uploads = profileProvider.myUploads;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Recent Snippets',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Icon(
+                              Icons.tune,
+                              color: Colors.white.withOpacity(0.5),
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        if (uploads.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Text(
+                              'No uploads yet',
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                          )
+                        else
+                          ...List.generate(
+                            uploads.length,
+                            (index) {
+                              final post = uploads[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _SnippetCard(
+                                  snippet: Snippet(
+                                    title: post.title ?? 'Untitled',
+                                    emoji: '',
+                                    timeAgo: post.timeAgo,
+                                    listens: '${post.shares}',
+                                    likes: '${post.likes}',
+                                    currentTime: '0:00',
+                                    totalTime: post.durationFormatted,
+                                  ),
+                                  isPlaying: _playingSnippetIndex == index,
+                                  onPlayPressed: () => _togglePlayback(index),
+                                  animationController: _waveformController,
+                                ),
+                              );
+                            },
+                          ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
             ],
@@ -211,15 +249,18 @@ class _Avatar extends StatelessWidget {
 }
 
 class _UserInfo extends StatelessWidget {
-  const _UserInfo();
+  final String username;
+  final String bio;
+
+  const _UserInfo({required this.username, required this.bio});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text(
-          '@audio_max',
-          style: TextStyle(
+        Text(
+          '@$username',
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -227,7 +268,7 @@ class _UserInfo extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Voice-first creator. Sharing daily vibes. \u{1F399}',
+          bio,
           style: TextStyle(
             fontSize: 14,
             color: Colors.white.withOpacity(0.7),
@@ -312,19 +353,33 @@ class _ActionButtons extends StatelessWidget {
 }
 
 class _StatsRow extends StatelessWidget {
-  const _StatsRow();
+  final int followers;
+  final int following;
+  final int plays;
+
+  const _StatsRow({
+    required this.followers,
+    required this.following,
+    required this.plays,
+  });
+
+  String _formatCount(int count) {
+    if (count >= 1000000) return '${(count / 1000000).toStringAsFixed(1)}M';
+    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
+    return count.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
-        children: const [
-          Expanded(child: _StatCard(value: '12.5k', label: 'FOLLOWERS')),
-          SizedBox(width: 10),
-          Expanded(child: _StatCard(value: '842', label: 'FOLLOWING')),
-          SizedBox(width: 10),
-          Expanded(child: _StatCard(value: '1.2M', label: 'PLAYS')),
+        children: [
+          Expanded(child: _StatCard(value: _formatCount(followers), label: 'FOLLOWERS')),
+          const SizedBox(width: 10),
+          Expanded(child: _StatCard(value: _formatCount(following), label: 'FOLLOWING')),
+          const SizedBox(width: 10),
+          Expanded(child: _StatCard(value: _formatCount(plays), label: 'PLAYS')),
         ],
       ),
     );

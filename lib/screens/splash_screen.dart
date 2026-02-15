@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
+import 'package:voiceapp/providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,9 +31,16 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animationController.forward();
 
-    _animationController.addStatusListener((status) {
+    _animationController.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
-        Navigator.pushReplacementNamed(context, '/login');
+        final authProvider = context.read<AuthProvider>();
+        final hasSession = await authProvider.checkSession();
+        if (!mounted) return;
+        if (hasSession) {
+          Navigator.pushReplacementNamed(context, '/main');
+        } else {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
       }
     });
   }

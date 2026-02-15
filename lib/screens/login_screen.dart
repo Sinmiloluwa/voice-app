@@ -1,9 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
-class LoginScreen extends StatelessWidget {
+import 'package:voiceapp/providers/auth_provider.dart';
+
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
 
+class _LoginScreenState extends State<LoginScreen> {
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final username = _usernameController.text.trim();
+    if (username.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a username')),
+      );
+      return;
+    }
+
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.loginAnonymous(username);
+
+    if (!mounted) return;
+    if (success) {
+      Navigator.pushReplacementNamed(context, '/main');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(authProvider.error ?? 'Login failed')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +60,11 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 const _Divider(),
                 const SizedBox(height: 24),
-                const _EmailField(),
+                _EmailField(controller: _usernameController),
                 const SizedBox(height: 16),
-                const _PasswordField(),
+                _PasswordField(controller: _passwordController),
                 const SizedBox(height: 24),
-                _LoginButton(),
+                _LoginButton(onPressed: _handleLogin),
                 const SizedBox(height: 24),
                 const _SignUpLink(),
                 const SizedBox(height: 32),
@@ -115,7 +153,6 @@ class _LogoCircle extends StatelessWidget {
   }
 }
 
-
 class _GoogleButton extends StatelessWidget {
   const _GoogleButton();
 
@@ -125,7 +162,10 @@ class _GoogleButton extends StatelessWidget {
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          // TODO: Integrate google_sign_in package to obtain idToken
+          // then call: context.read<AuthProvider>().loginGoogle(idToken);
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
@@ -168,20 +208,24 @@ class _Divider extends StatelessWidget {
 }
 
 class _EmailField extends StatelessWidget {
-  const _EmailField();
+  final TextEditingController controller;
+
+  const _EmailField({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       keyboardType: TextInputType.emailAddress,
       decoration: _inputDecoration('USERNAME OR EMAIL'),
     );
   }
 }
 
-
 class _PasswordField extends StatefulWidget {
-  const _PasswordField();
+  final TextEditingController controller;
+
+  const _PasswordField({required this.controller});
 
   @override
   State<_PasswordField> createState() => _PasswordFieldState();
@@ -196,6 +240,7 @@ class _PasswordFieldState extends State<_PasswordField> {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         TextField(
+          controller: widget.controller,
           obscureText: _obscureText,
           decoration: InputDecoration(
             labelText: 'PASSWORD',
@@ -228,29 +273,43 @@ class _PasswordFieldState extends State<_PasswordField> {
   }
 }
 
-
 class _LoginButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _LoginButton({required this.onPressed});
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.pushReplacementNamed(context, '/home', arguments: {});
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Constants.primaryColor,
-          foregroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(26),
+    return Consumer<AuthProvider>(
+      builder: (context, auth, child) {
+        return SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: auth.isLoading ? null : onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Constants.primaryColor,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(26),
+              ),
+            ),
+            child: auth.isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.black,
+                    ),
+                  )
+                : const Text(
+                    'Login with Username',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
           ),
-        ),
-        child: const Text(
-          'Login with Username',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -305,7 +364,6 @@ class _Footer extends StatelessWidget {
     );
   }
 }
-
 
 InputDecoration _inputDecoration(String label) {
   return InputDecoration(

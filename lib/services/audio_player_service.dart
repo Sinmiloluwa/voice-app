@@ -16,7 +16,11 @@ class AudioPlayerService {
 
   Future<void> playAudio(String audioUrl) async {
     try {
-      await _audioPlayer.setAsset(audioUrl);
+      if (audioUrl.startsWith('http://') || audioUrl.startsWith('https://')) {
+        await _audioPlayer.setUrl(audioUrl);
+      } else {
+        await _audioPlayer.setAsset(audioUrl);
+      }
       await _audioPlayer.play();
     } catch (e) {
       print('Error playing audio: $e');

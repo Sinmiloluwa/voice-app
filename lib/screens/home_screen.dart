@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:provider/provider.dart';
 import 'package:voiceapp/services/audio_player_service.dart';
 import 'package:voiceapp/screens/comment_screen.dart';
 import 'package:voiceapp/assets/constants.dart';
+import 'package:voiceapp/models/voice_post.dart';
+import 'package:voiceapp/providers/feed_provider.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -16,61 +19,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedTabIndex = 0;
 
-  final List<AudioPost> audioPostsMockData = [
-    AudioPost(
-      id: '1',
-      username: '@sarah_sounds',
-      displayName: 'Sarah',
-      avatar:
-          'https://ui-avatars.com/api/?name=Sarah&background=D4E157&color=000',
-      timeAgo: '2 mins ago',
-      duration: '0:45',
-      title:
-          'Storytime: That one time I got lost in Berlin after a concert... 🎵',
-      waveformImage:
-          'https://via.placeholder.com/400x80/1a1a1a/D4E157?text=Waveform1',
-      tags: ['#travel', '#storytime'],
-      likes: 1200,
-      comments: 850,
-      shares: 420,
-      audioUrl:
-          'assets/audio/1.mp3',
-    ),
-    AudioPost(
-      id: '2',
-      username: '@alex_vibes',
-      displayName: 'Alex',
-      avatar:
-          'https://ui-avatars.com/api/?name=Alex&background=D4E157&color=000',
-      timeAgo: '15 mins ago',
-      duration: '0:12',
-      title: 'New synth loop I recorded this morning. Thoughts? 🎹',
-      waveformImage:
-          'https://via.placeholder.com/400x80/1a1a1a/D4E157?text=Waveform2',
-      tags: ['#music', '#production'],
-      likes: 450,
-      comments: 170,
-      shares: 89,
-      audioUrl: 'assets/audio/2.mp3',
-    ),
-    AudioPost(
-      id: '3',
-      username: '@luna_voice',
-      displayName: 'Luna',
-      avatar:
-          'https://ui-avatars.com/api/?name=Luna&background=D4E157&color=000',
-      timeAgo: '45 mins ago',
-      duration: '2:30',
-      title: 'Deep dive into podcast production tips for beginners',
-      waveformImage:
-          'https://via.placeholder.com/400x80/1a1a1a/D4E157?text=Waveform3',
-      tags: ['#podcast', '#education'],
-      likes: 2100,
-      comments: 340,
-      shares: 560,
-      audioUrl: 'assets/audio/3.mp3',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FeedProvider>().loadFeed();
+    });
+  }
+
+  void _onTabSelected(int index) {
+    setState(() {
+      _selectedTabIndex = index;
+    });
+    // index 2 = Trending
+    context.read<FeedProvider>().loadFeed(trending: index == 2);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,32 +47,66 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 _TabBar(
                   selectedIndex: _selectedTabIndex,
-                  onTabSelected: (index) {
-                    setState(() {
-                      _selectedTabIndex = index;
-                    });
-                  },
+                  onTabSelected: _onTabSelected,
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: audioPostsMockData.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: _AudioCard(post: audioPostsMockData[index]),
+                  child: Consumer<FeedProvider>(
+                    builder: (context, feedProvider, child) {
+                      if (feedProvider.isLoading) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Constants.primaryColor,
+                          ),
+                        );
+                      }
+                      if (feedProvider.error != null) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Failed to load feed',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton(
+                                onPressed: () => feedProvider.loadFeed(
+                                  trending: _selectedTabIndex == 2,
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Constants.primaryColor,
+                                  foregroundColor: Colors.black,
+                                ),
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      if (feedProvider.posts.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No posts yet',
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: feedProvider.posts.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _AudioCard(post: feedProvider.posts[index]),
+                          );
+                        },
                       );
                     },
                   ),
                 ),
               ],
             ),
-            // Positioned(
-            //   bottom: 80,
-            //   right: 20,
-            //   child: _FloatingMicButton(),
-            // ),
           ],
         ),
       ),
@@ -213,7 +210,7 @@ class _TabBar extends StatelessWidget {
 }
 
 class _AudioCard extends StatefulWidget {
-  final AudioPost post;
+  final VoicePost post;
 
   const _AudioCard({required this.post});
 
@@ -273,7 +270,16 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                   children: [
                     CircleAvatar(
                       radius: 24,
-                      backgroundImage: NetworkImage(widget.post.avatar),
+                      backgroundColor: Constants.primaryColor,
+                      child: Text(
+                        widget.post.username.isNotEmpty
+                            ? widget.post.username[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -287,7 +293,7 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                           ),
                         ),
                         Text(
-                          '${widget.post.timeAgo} • ${widget.post.duration}',
+                          '${widget.post.timeAgo} • ${widget.post.durationFormatted}',
                           style: const TextStyle(
                             color: Colors.white54,
                             fontSize: 12,
@@ -355,7 +361,7 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.post.title,
+                  widget.post.title ?? '',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
@@ -364,32 +370,33 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: List.generate(
-                    widget.post.tags.length,
-                    (index) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Constants.primaryColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          widget.post.tags[index],
-                          style: const TextStyle(
-                            color: Constants.primaryColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                if (widget.post.tags.isNotEmpty)
+                  Row(
+                    children: List.generate(
+                      widget.post.tags.length,
+                      (index) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Constants.primaryColor.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            widget.post.tags[index],
+                            style: const TextStyle(
+                              color: Constants.primaryColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -406,10 +413,10 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                           MaterialPageRoute(
                             builder: (context) => CommentScreen(
                               postId: widget.post.id,
-                              originalAuthor: widget.post.displayName,
-                              originalTitle: widget.post.title,
+                              originalAuthor: widget.post.username,
+                              originalTitle: widget.post.title ?? '',
                               audioUrl: widget.post.audioUrl,
-                              duration: widget.post.duration,
+                              duration: widget.post.durationFormatted,
                               likes: widget.post.likes,
                               commentCount: widget.post.comments,
                             ),
@@ -472,66 +479,6 @@ class _EngagementButton extends StatelessWidget {
   }
 }
 
-
-
-class _BottomNavBar extends StatelessWidget {
-  final int selectedIndex;
-  final Function(int) onNavSelected;
-
-  const _BottomNavBar({
-    required this.selectedIndex,
-    required this.onNavSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final navItems = [
-      {'icon': Icons.home, 'label': 'Home'},
-      {'icon': Icons.explore, 'label': 'Explore'},
-      {'icon': Icons.notifications, 'label': 'Alerts'},
-      {'icon': Icons.person, 'label': 'Profile'},
-    ];
-
-    return Container(
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        border: Border(top: BorderSide(color: Colors.white10)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(
-          navItems.length,
-          (index) => GestureDetector(
-            onTap: () => onNavSelected(index),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  navItems[index]['icon'] as IconData,
-                  color: selectedIndex == index
-                      ? Constants.primaryColor
-                      : Colors.white30,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  navItems[index]['label'] as String,
-                  style: TextStyle(
-                    color: selectedIndex == index
-                        ? Constants.primaryColor
-                        : Colors.white30,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _Waveform extends StatelessWidget {
   final bool isPlaying;
   final AnimationController animationController;
@@ -572,12 +519,10 @@ class _WaveformPainter extends CustomPainter {
     for (int i = 0; i < totalBars; i++) {
       final x = i * (barWidth + spacing) + 8;
 
-      // Generate pseudo-random height for each bar
       final seed = i * 12.5;
       final baseHeight =
           (size.height * 0.3) + ((sin(seed) * 0.5 + 0.5) * size.height * 0.5);
 
-      // Animate bars when playing
       final animatedHeight = isPlaying
           ? baseHeight * (0.5 + 0.5 * sin(seed + animation.value).abs())
           : baseHeight * 0.3;
@@ -592,36 +537,4 @@ class _WaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WaveformPainter oldDelegate) => true;
-}
-
-class AudioPost {
-  final String id;
-  final String username;
-  final String displayName;
-  final String avatar;
-  final String timeAgo;
-  final String duration;
-  final String title;
-  final String waveformImage;
-  final List<String> tags;
-  final int likes;
-  final int comments;
-  final int shares;
-  final String audioUrl;
-
-  AudioPost({
-    required this.id,
-    required this.username,
-    required this.displayName,
-    required this.avatar,
-    required this.timeAgo,
-    required this.duration,
-    required this.title,
-    required this.waveformImage,
-    required this.tags,
-    required this.likes,
-    required this.comments,
-    required this.shares,
-    required this.audioUrl,
-  });
 }
