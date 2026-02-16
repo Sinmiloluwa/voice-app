@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Flutter Demo',
+        title: 'Sonar',
         theme: ThemeData(
           brightness: Brightness.light,
           primarySwatch: Colors.blue,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
@@ -19,6 +20,44 @@ class _LoginScreenState extends State<LoginScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    try {
+      final googleSignIn = GoogleSignIn(
+        serverClientId: '436648307274-tdlhrrv14kdvt59e2purgdjvm0lji1et.apps.googleusercontent.com',
+      );
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) return;
+
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      print(idToken);
+      if (idToken == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to get Google ID token')),
+        );
+        return;
+      }
+
+      final authProvider = context.read<AuthProvider>();
+      final success = await authProvider.loginGoogle(idToken);
+
+      if (!mounted) return;
+      if (success) {
+        Navigator.pushReplacementNamed(context, '/main');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authProvider.error ?? 'Google login failed')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google sign-in error: $e')),
+      );
+    }
   }
 
   Future<void> _handleLogin() async {
@@ -56,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 40),
                 const _Header(),
                 const SizedBox(height: 40),
-                const _GoogleButton(),
+                _GoogleButton(onPressed: _handleGoogleLogin),
                 const SizedBox(height: 24),
                 const _Divider(),
                 const SizedBox(height: 24),
@@ -120,7 +159,7 @@ class _Header extends StatelessWidget {
         _LogoCircle(),
         SizedBox(height: 24),
         Text(
-          'Welcome to the Vibe',
+          'Welcome to Sonar',
           style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 12),
@@ -154,7 +193,9 @@ class _LogoCircle extends StatelessWidget {
 }
 
 class _GoogleButton extends StatelessWidget {
-  const _GoogleButton();
+  final VoidCallback onPressed;
+
+  const _GoogleButton({required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -162,10 +203,7 @@ class _GoogleButton extends StatelessWidget {
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: () {
-          // TODO: Integrate google_sign_in package to obtain idToken
-          // then call: context.read<AuthProvider>().loginGoogle(idToken);
-        },
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,

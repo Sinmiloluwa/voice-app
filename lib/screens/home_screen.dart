@@ -7,6 +7,7 @@ import 'package:voiceapp/assets/constants.dart';
 import 'package:voiceapp/models/voice_post.dart';
 import 'package:voiceapp/providers/feed_provider.dart';
 import 'package:voiceapp/services/voice_service.dart';
+import 'package:voiceapp/providers/auth_provider.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -126,19 +127,33 @@ class _Header extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Constants.primaryColor.withOpacity(0.5),
-                width: 2,
-              ),
-            ),
-            child: const Center(
-              child: Icon(Icons.person, color: Constants.primaryColor),
-            ),
+          Builder(
+            builder: (context) {
+              final avatarUrl = context.watch<AuthProvider>().user?.profilePicture;
+              return Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Constants.primaryColor.withOpacity(0.5),
+                    width: 2,
+                  ),
+                ),
+                child: ClipOval(
+                  child: avatarUrl != null
+                      ? Image.network(
+                          avatarUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.person,
+                            color: Constants.primaryColor,
+                          ),
+                        )
+                      : const Icon(Icons.person, color: Constants.primaryColor),
+                ),
+              );
+            },
           ),
           const Text(
             'Home Feed',

@@ -1,7 +1,7 @@
 class UserModel {
   final String id;
   final String username;
-  final String? avatarUrl;
+  final String? profilePicture;
   final String? bio;
   final int followerCount;
   final int followingCount;
@@ -10,7 +10,7 @@ class UserModel {
   UserModel({
     required this.id,
     required this.username,
-    this.avatarUrl,
+    this.profilePicture,
     this.bio,
     this.followerCount = 0,
     this.followingCount = 0,
@@ -21,7 +21,7 @@ class UserModel {
     return UserModel(
       id: json["id"] ?? json["_id"],
       username: json["username"],
-      avatarUrl: json["avatarUrl"],
+      profilePicture: json["profilePicture"],
       bio: json["bio"],
       followerCount: json["followerCount"] ?? 0,
       followingCount: json["followingCount"] ?? 0,
