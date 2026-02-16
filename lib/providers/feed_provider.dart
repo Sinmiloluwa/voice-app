@@ -13,12 +13,12 @@ class FeedProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<void> loadFeed({bool trending = false}) async {
+  Future<void> loadFeed({FeedType type = FeedType.forYou}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
-      _posts = await _voiceApi.getFeed(trending: trending);
+      _posts = await _voiceApi.getFeed(type: type);
       _isLoading = false;
       notifyListeners();
     } catch (e) {

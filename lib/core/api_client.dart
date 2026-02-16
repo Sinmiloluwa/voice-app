@@ -11,7 +11,7 @@ class ApiClient {
   ApiClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: "http://10.0.2.2:5000",
+        baseUrl: "https://sonar-production-e49e.up.railway.app/api",
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ),
@@ -27,6 +27,7 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) {
+          print(e);
           return handler.next(e);
         },
       ),

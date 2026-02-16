@@ -64,8 +64,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 builder: (context, auth, _) {
                   final user = auth.user;
                   return _UserInfo(
-                    username: user?.username ?? 'unknown',
-                    bio: user?.bio ?? 'Voice-first creator.',
+                    username: user?.username ?? 'user',
+                    bio: user?.bio ?? 'user',
                   );
                 },
               ),

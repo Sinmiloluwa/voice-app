@@ -6,6 +6,7 @@ import 'package:voiceapp/screens/comment_screen.dart';
 import 'package:voiceapp/assets/constants.dart';
 import 'package:voiceapp/models/voice_post.dart';
 import 'package:voiceapp/providers/feed_provider.dart';
+import 'package:voiceapp/services/voice_service.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -27,12 +28,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  static const _tabFeedTypes = [FeedType.forYou, FeedType.following, FeedType.trending];
+
   void _onTabSelected(int index) {
     setState(() {
       _selectedTabIndex = index;
     });
-    // index 2 = Trending
-    context.read<FeedProvider>().loadFeed(trending: index == 2);
+    context.read<FeedProvider>().loadFeed(type: _tabFeedTypes[index]);
   }
 
   @override
@@ -72,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(height: 12),
                               ElevatedButton(
                                 onPressed: () => feedProvider.loadFeed(
-                                  trending: _selectedTabIndex == 2,
+                                  type: _tabFeedTypes[_selectedTabIndex],
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Constants.primaryColor,

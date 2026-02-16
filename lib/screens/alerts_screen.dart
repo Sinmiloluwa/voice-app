@@ -28,7 +28,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
     Activity(
       type: ActivityType.following,
       userName: 'User123',
-      userAvatar: 'https://via.placeholder.com/48/4ECDC4/FFFFFF?text=U',
+      userAvatar: 'https://placehold.co/48/4ECDC4/FFFFFF?text=U',
       action: 'started following you',
       timestamp: '2m ago',
       showFollowBack: true,
@@ -36,7 +36,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
     Activity(
       type: ActivityType.reaction,
       userName: 'Alex',
-      userAvatar: 'https://via.placeholder.com/48/FFE66D/FFFFFF?text=A',
+      userAvatar: 'https://placehold.co/48/FFE66D/FFFFFF?text=A',
       action: 'reacted 🔥 to your clip',
       subtitle: "'Morning Vibes'",
       timestamp: '15m ago',
@@ -45,9 +45,9 @@ class _AlertsScreenState extends State<AlertsScreen> {
       type: ActivityType.likes,
       userName: 'Jordan and 3 others',
       avatars: [
-        'https://via.placeholder.com/32/FF6B6B/FFFFFF?text=J',
-        'https://via.placeholder.com/32/4ECDC4/FFFFFF?text=K',
-        'https://via.placeholder.com/32/FFE66D/FFFFFF?text=L',
+        'https://placehold.co/32/FF6B6B/FFFFFF?text=J',
+        'https://placehold.co/32/4ECDC4/FFFFFF?text=K',
+        'https://placehold.co/32/FFE66D/FFFFFF?text=L',
       ],
       action: 'liked your audio',
       timestamp: '3h ago',
@@ -55,7 +55,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
     Activity(
       type: ActivityType.reply,
       userName: 'Chloe',
-      userAvatar: 'https://via.placeholder.com/48/95E1D3/FFFFFF?text=C',
+      userAvatar: 'https://placehold.co/48/95E1D3/FFFFFF?text=C',
       action: 'replied to your story',
       subtitle: "'Love this melody!'",
       timestamp: '5h ago',
