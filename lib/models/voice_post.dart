@@ -10,6 +10,8 @@ class VoicePost {
   final int likes;
   final int comments;
   final int shares;
+  final Map<String, int> reactions;
+  final String? myReaction;
   final DateTime createdAt;
 
   VoicePost({
@@ -24,15 +26,22 @@ class VoicePost {
     this.likes = 0,
     this.comments = 0,
     this.shares = 0,
+    this.reactions = const {},
+    this.myReaction,
     required this.createdAt,
   });
 
   factory VoicePost.fromJson(Map<String, dynamic> json) {
+    final user = json["userId"];
+    final bool isUserObject = user is Map<String, dynamic>;
+
     return VoicePost(
       id: json["id"] ?? json["_id"] ?? "",
-      userId: json["userId"] ?? "",
-      username: json["username"] ?? "",
-      avatarUrl: json["avatarUrl"],
+      userId: isUserObject ? (user["_id"] ?? user["id"] ?? "") : (user ?? ""),
+      username: isUserObject
+          ? (user["username"] ?? "")
+          : (json["username"] ?? ""),
+      avatarUrl: isUserObject ? user["avatarUrl"] : json["avatarUrl"],
       audioUrl: json["audioUrl"] ?? "",
       duration: json["duration"] ?? 0,
       title: json["title"],
@@ -40,7 +49,38 @@ class VoicePost {
       likes: json["likes"] ?? 0,
       comments: json["comments"] ?? 0,
       shares: json["shares"] ?? 0,
+      reactions: Map<String, int>.from(json["reactions"] ?? {}),
+      myReaction: json["myReaction"],
       createdAt: DateTime.tryParse(json["createdAt"] ?? "") ?? DateTime.now(),
+    );
+  }
+
+  int get totalReactions => reactions.values.fold(0, (a, b) => a + b);
+
+  String? get topReactionEmoji {
+    if (reactions.isEmpty) return null;
+    return reactions.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+  }
+
+  VoicePost copyWith({
+    Map<String, int>? reactions,
+    String? Function()? myReaction,
+  }) {
+    return VoicePost(
+      id: id,
+      userId: userId,
+      username: username,
+      avatarUrl: avatarUrl,
+      audioUrl: audioUrl,
+      duration: duration,
+      title: title,
+      tags: tags,
+      likes: likes,
+      comments: comments,
+      shares: shares,
+      reactions: reactions ?? this.reactions,
+      myReaction: myReaction != null ? myReaction() : this.myReaction,
+      createdAt: createdAt,
     );
   }
 

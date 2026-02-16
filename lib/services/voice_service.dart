@@ -37,6 +37,14 @@ class VoiceApi {
     return (res.data as List).map((e) => VoicePost.fromJson(e)).toList();
   }
 
+  Future<void> addReaction(String postId, String emoji) async {
+    await api.post("/voice/$postId/react", data: {"type": emoji});
+  }
+
+  Future<void> removeReaction(String postId) async {
+    await api.delete("/voice/$postId/react");
+  }
+
   Future<List<VoicePost>> getMyUploads() async {
     final res = await api.get("/voice/my-uploads");
     return (res.data as List).map((e) => VoicePost.fromJson(e)).toList();

@@ -222,6 +222,7 @@ class _AudioCard extends StatefulWidget {
 
 class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
   bool _isPlaying = false;
+  bool _showReactionPicker = false;
   late AnimationController _waveformController;
 
   @override
@@ -400,6 +401,26 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                     ),
                   ),
                 const SizedBox(height: 12),
+                if (_showReactionPicker)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _ReactionPicker(
+                        post: widget.post,
+                        onSelected: (emoji) {
+                          final key = _emojiToKey[emoji] ?? emoji;
+                          context.read<FeedProvider>().reactToPost(
+                            widget.post.id,
+                            key,
+                          );
+                          setState(() {
+                            _showReactionPicker = false;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -408,7 +429,7 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                       count: widget.post.likes,
                       color: Constants.primaryColor,
                     ),
-                  GestureDetector(
+                    GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
@@ -429,11 +450,14 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                         icon: Icons.chat_bubble_outline,
                         count: widget.post.comments,
                       ),
-                  ),
-
-                    _EngagementButton(
-                      icon: Icons.emoji_emotions_outlined,
-                      count: widget.post.shares,
+                    ),
+                    _ReactionButton(
+                      post: widget.post,
+                      onTogglePicker: () {
+                        setState(() {
+                          _showReactionPicker = !_showReactionPicker;
+                        });
+                      },
                     ),
                     const Icon(Icons.share, color: Colors.white30),
                   ],
@@ -476,6 +500,101 @@ class _EngagementButton extends StatelessWidget {
             style: const TextStyle(fontSize: 12, color: Colors.white70),
           ),
         ],
+      ),
+    );
+  }
+}
+
+const _reactionEmojis = ['🔥', '❤️', '👏'];
+const _emojiToKey = {'🔥': 'fire', '❤️': 'heart', '👏': 'clap'};
+const _keyToEmoji = {'fire': '🔥', 'heart': '❤️', 'clap': '👏'};
+const _emojiStyle = TextStyle(fontFamily: 'Apple Color Emoji', fontSize: 14);
+
+class _ReactionButton extends StatelessWidget {
+  final VoicePost post;
+  final VoidCallback onTogglePicker;
+
+  const _ReactionButton({
+    required this.post,
+    required this.onTogglePicker,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasReacted = post.myReaction != null;
+    final topEmoji = post.topReactionEmoji;
+    final totalCount = post.totalReactions;
+
+    return GestureDetector(
+      onTap: onTogglePicker,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: hasReacted
+              ? Constants.primaryColor.withOpacity(0.1)
+              : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: hasReacted ? Constants.primaryColor.withOpacity(0.3) : Colors.white10,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(
+              (topEmoji != null ? _keyToEmoji[topEmoji] : null) ?? '😀',
+              style: _emojiStyle,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              totalCount.toString(),
+              style: TextStyle(
+                fontSize: 12,
+                color: hasReacted ? Constants.primaryColor : Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReactionPicker extends StatelessWidget {
+  final VoicePost post;
+  final ValueChanged<String> onSelected;
+
+  const _ReactionPicker({
+    required this.post,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: _reactionEmojis.map((emoji) {
+          final isSelected = post.myReaction == _emojiToKey[emoji];
+          return GestureDetector(
+            onTap: () => onSelected(emoji),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Constants.primaryColor.withOpacity(0.2)
+                    : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+              child: Text(emoji, style: _emojiStyle.copyWith(fontSize: 20)),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
