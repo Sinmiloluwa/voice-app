@@ -94,7 +94,7 @@ class _MyAppState extends State<MyApp> {
         await authService.saveFcmToken(token);
       }
     } catch (e) {
-      print('Failed to send FCM token');
+      print('Failed to send FCM token: $e');
     }
   }
 

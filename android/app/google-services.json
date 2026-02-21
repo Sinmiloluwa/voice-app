@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:420814368276:android:dbf4eaec8fba2606a3c101",
+        "mobilesdk_app_id": "1:420814368276:android:3e5eab34e9ade965a3c101",
         "android_client_info": {
-          "package_name": "com.example.voiceapp"
+          "package_name": "com.sinmiloluwa.voiceapp"
         }
       },
       "oauth_client": [],

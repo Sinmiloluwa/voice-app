@@ -14,8 +14,8 @@ class ApiClient {
     dio = Dio(
       BaseOptions(
         baseUrl: "https://sonar-production-e49e.up.railway.app/api",
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
       ),
     );
 
