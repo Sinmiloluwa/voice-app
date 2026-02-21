@@ -34,6 +34,13 @@ class AuthService {
     return await _storage.read(key: "token");
   }
 
+  Future<void> saveFcmToken(String fcmToken) async {
+    await api.post(
+      "/notifications/fcm-token",
+      data: {"token": fcmToken},
+    );
+  }
+
   Future<void> logout() async {
     await _storage.delete(key: "token");
   }

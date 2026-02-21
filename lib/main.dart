@@ -11,6 +11,7 @@ import 'package:voiceapp/screens/main_screen.dart';
 import 'package:voiceapp/screens/splash_screen.dart';
 import 'package:voiceapp/screens/login_screen.dart';
 import 'package:voiceapp/screens/view_screen.dart';
+import 'package:voiceapp/services/auth_service.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -84,6 +85,19 @@ class _MyAppState extends State<MyApp> {
 
   
 
+  Future<void> _sendFcmToken(String token) async {
+    try {
+      print(token);
+      final authService = AuthService();
+      final savedToken = await authService.getSavedToken();
+      if (savedToken != null) {
+        await authService.saveFcmToken(token);
+      }
+    } catch (e) {
+      print('Failed to send FCM token');
+    }
+  }
+
   Future<void> _setupFCM() async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
@@ -98,10 +112,10 @@ class _MyAppState extends State<MyApp> {
     }
 
     String? token = await messaging.getToken();
-    print('FCM TOKEN: $token');
+    if (token != null) await _sendFcmToken(token);
 
     messaging.onTokenRefresh.listen((newToken) {
-      print('Token refreshed: $newToken');
+      _sendFcmToken(newToken);
     });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
