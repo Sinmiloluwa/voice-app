@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class AlertsScreen extends StatefulWidget {
@@ -238,7 +239,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                               border: Border.all(color: AlertsScreen.backgroundColor, width: 2),
                             ),
                             child: CircleAvatar(
-                              backgroundImage: NetworkImage(widget.activity.avatars![index]),
+                              backgroundImage: CachedNetworkImageProvider(widget.activity.avatars![index]),
                             ),
                           ),
                         );
@@ -258,7 +259,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                     alignment: Alignment.bottomRight,
                     children: [
                       CircleAvatar(
-                        backgroundImage: NetworkImage(widget.activity.userAvatar ?? ''),
+                        backgroundImage: CachedNetworkImageProvider(widget.activity.userAvatar ?? ''),
                       ),
                       Container(
                         width: 20,

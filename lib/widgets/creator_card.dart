@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:voiceapp/assets/constants.dart';
 
@@ -36,7 +37,7 @@ class _CreatorCardState extends State<CreatorCard> {
               radius: 30,
               backgroundColor: Colors.grey[800],
               backgroundImage: (widget.imageUrl.isNotEmpty)
-                  ? NetworkImage(widget.imageUrl)
+                  ? CachedNetworkImageProvider(widget.imageUrl)
                   : const AssetImage('assets/images/placeholder.png')
                         as ImageProvider,
             ),

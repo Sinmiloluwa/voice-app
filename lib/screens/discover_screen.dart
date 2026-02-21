@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
@@ -42,6 +43,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       context.read<FeedProvider>().searchPost(query.trim());
     });
   }
+
+  final backgroundImage = "https://images.unsplash.com/photo-1453738773917-9c3eff1db985?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
   final List<Map<String, String>> creators = [
     {
@@ -154,8 +157,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           CircleAvatar(
                             radius: 16,
                             child: ClipOval(
-                              child: Image.network(
-                                'https://cdn.pixabay.com/photo/2022/10/07/18/35/potrait-7505634_1280.jpg',
+                              child: CachedNetworkImage(
+                                imageUrl: 'https://cdn.pixabay.com/photo/2022/10/07/18/35/potrait-7505634_1280.jpg',
                               ),
                             ),
                           ),
@@ -282,9 +285,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           itemBuilder: (context, index) {
                             final post = feedProvider.posts[index];
                             return AudioCard(
-                              url: post.avatarUrl ?? '',
+                              url: post.category?["imageUrl"] ?? '',
                               time: post.durationFormatted,
-                              category: post.tags.isNotEmpty ? post.tags.first.toUpperCase() : '',
+                              category: post.category?["name"]?.isNotEmpty == true ? post.category!['name']! : post.tags.isNotEmpty ? post.tags.first.toUpperCase() : backgroundImage,
                               title: post.title ?? '',
                             );
                           },
@@ -445,7 +448,7 @@ class _FloatingAudioPlayerState extends State<_FloatingAudioPlayer> {
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundImage: NetworkImage(
+              backgroundImage: CachedNetworkImageProvider(
                 'https://cdn.pixabay.com/photo/2022/10/07/18/35/potrait-7505634_1280.jpg',
               ),
             ),

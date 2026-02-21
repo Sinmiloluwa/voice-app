@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:voiceapp/assets/constants.dart';
 
@@ -36,7 +37,7 @@ class AudioCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         image: DecorationImage(
-          image: NetworkImage(url),
+          image: CachedNetworkImageProvider(url),
           fit: BoxFit.cover,
         ),
         border: Border.all(width: 0.4),

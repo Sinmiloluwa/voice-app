@@ -7,6 +7,7 @@ class VoicePost {
   final int duration;
   final String? title;
   final List<String> tags;
+  final Map<String, String>? category;
   final int likes;
   final int comments;
   final int shares;
@@ -23,6 +24,7 @@ class VoicePost {
     required this.duration,
     this.title,
     this.tags = const [],
+    this.category,
     this.likes = 0,
     this.comments = 0,
     this.shares = 0,
@@ -46,6 +48,7 @@ class VoicePost {
       duration: json["duration"] ?? 0,
       title: json["title"],
       tags: List<String>.from(json["tags"] ?? []),
+      category: Map<String, String>.from(json["category"] ?? {}),
       likes: json["likes"] ?? 0,
       comments: json["comments"] ?? 0,
       shares: json["shares"] ?? 0,
@@ -75,6 +78,7 @@ class VoicePost {
       duration: duration,
       title: title,
       tags: tags,
+      category: category,
       likes: likes,
       comments: comments,
       shares: shares,

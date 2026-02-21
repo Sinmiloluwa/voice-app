@@ -62,8 +62,14 @@ class VoiceApi {
   Future<List<VoicePost>> searchPost(String query) async {
     final res = await api.get("/search", queryParameters: {"q": query});
     final data = res.data;
-    final list = data is List ? data : (data ?? []);
-    print(list);
-    return (list as List).map((e) => VoicePost.fromJson(e)).toList();
+    final List list;
+    if (data is List) {
+      list = data;
+    } else if (data is Map<String, dynamic>) {
+      list = data["posts"]?["voices"] ?? data["voices"] ?? data["data"] ?? [];
+    } else {
+      list = [];
+    }
+    return list.map((e) => VoicePost.fromJson(e as Map<String, dynamic>)).toList();
   }
 }

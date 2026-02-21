@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:provider/provider.dart';
@@ -139,10 +140,10 @@ class _Header extends StatelessWidget {
                 ),
                 child: ClipOval(
                   child: avatarUrl != null
-                      ? Image.network(
-                          avatarUrl,
+                      ? CachedNetworkImage(
+                          imageUrl: avatarUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorWidget: (_, __, ___) => const Icon(
                             Icons.person,
                             color: Constants.primaryColor,
                           ),
