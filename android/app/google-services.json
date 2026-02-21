@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "420814368276",
+    "project_id": "sonarapp-a32a9",
+    "storage_bucket": "sonarapp-a32a9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:420814368276:android:dbf4eaec8fba2606a3c101",
+        "android_client_info": {
+          "package_name": "com.example.voiceapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvs74l2j2BZJxyjZZUXnn96WOhFKplO4Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
