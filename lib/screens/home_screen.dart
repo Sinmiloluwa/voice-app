@@ -8,6 +8,7 @@ import 'package:voiceapp/models/voice_post.dart';
 import 'package:voiceapp/providers/feed_provider.dart';
 import 'package:voiceapp/services/voice_service.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
+import 'package:voiceapp/widgets/shimmer_loaders.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -57,11 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Consumer<FeedProvider>(
                     builder: (context, feedProvider, child) {
                       if (feedProvider.isLoading) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: Constants.primaryColor,
-                          ),
-                        );
+                        return const HomeFeedShimmer();
                       }
                       if (feedProvider.error != null) {
                         return Center(

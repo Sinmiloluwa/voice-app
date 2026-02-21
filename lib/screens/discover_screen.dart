@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
+import 'package:voiceapp/providers/feed_provider.dart';
 import 'package:voiceapp/widgets/audio_card.dart';
 import 'package:voiceapp/widgets/creator_card.dart';
 import 'package:voiceapp/widgets/custom_tab_bar.dart';
+import 'package:voiceapp/widgets/shimmer_loaders.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -15,6 +20,28 @@ class DiscoverScreen extends StatefulWidget {
 class _DiscoverScreenState extends State<DiscoverScreen> {
   int _selectedTab = 0;
   bool isExpanded = false;
+  final _searchController = TextEditingController();
+  Timer? _debounce;
+  bool _isSearching = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    if (query.trim().isEmpty) {
+      setState(() => _isSearching = false);
+      return;
+    }
+    setState(() => _isSearching = true);
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      context.read<FeedProvider>().searchPost(query.trim());
+    });
+  }
 
   final List<Map<String, String>> creators = [
     {
@@ -167,6 +194,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
                       decoration: InputDecoration(
                         hintText: "Search voices, creators, or topics",
                         hintStyle: const TextStyle(
@@ -181,6 +210,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           color: Constants.primaryColor,
                           size: 20,
                         ),
+
+                        suffixIcon: _isSearching
+                            ? IconButton(
+                                icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                },
+                              )
+                            : null,
 
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
@@ -200,113 +239,167 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 12),
-                  CustomTabBar(
-                    tabs: myTabs,
-                    selectedIndex: _selectedTab,
-                    onTabSelected: (index) {
-                      setState(() {
-                        _selectedTab = index;
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Trending Now', style: Constants.headingStyle),
-                            const SizedBox(width: 4),
-                            Container(
-                              width: 8, // size of the dot
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: Constants.primaryColor,
-                                shape: BoxShape.circle,
+                  if (_isSearching) ...[
+                    Consumer<FeedProvider>(
+                      builder: (context, feedProvider, _) {
+                        if (feedProvider.isLoading) {
+                          return const DiscoverSearchShimmer();
+                        }
+                        if (feedProvider.error != null) {
+                          return Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Center(
+                              child: Text(
+                                'Something went wrong',
+                                style: TextStyle(color: Colors.white54),
                               ),
                             ),
-                          ],
-                        ),
-                        Text('See all', style: Constants.subHeadingStyle),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.7,
-                        ),
-                    itemCount: 4,
-                    itemBuilder: (context, index) {
-                      final card = audioCards[index];
-                      return AudioCard(
-                        url: card['url']!,
-                        time: card['time']!,
-                        category: card['category']!,
-                        title: card['title']!,
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: EdgeInsetsGeometry.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Suggested Creators',
-                              style: Constants.headingStyle,
-                            ),
-                            const SizedBox(width: 4),
-                            Container(
-                              width: 8, // size of the dot
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: Constants.primaryColor,
-                                shape: BoxShape.circle,
+                          );
+                        }
+                        if (feedProvider.posts.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Center(
+                              child: Text(
+                                'No results found',
+                                style: TextStyle(color: Colors.white54),
                               ),
                             ),
-                          ],
-                        ),
-                        Text('View all', style: Constants.subHeadingStyle),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 200,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: creators.length,
-                      itemBuilder: (context, index) {
-                        final creator = creators[index];
-                        return CreatorCard(
-                          imageUrl: creator['imageUrl']!,
-                          name: creator['name']!,
+                          );
+                        }
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(16),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 0.7,
+                              ),
+                          itemCount: feedProvider.posts.length,
+                          itemBuilder: (context, index) {
+                            final post = feedProvider.posts[index];
+                            return AudioCard(
+                              url: post.avatarUrl ?? '',
+                              time: post.durationFormatted,
+                              category: post.tags.isNotEmpty ? post.tags.first.toUpperCase() : '',
+                              title: post.title ?? '',
+                            );
+                          },
                         );
                       },
                     ),
-                  ),
+                  ] else ...[
+                    const SizedBox(height: 12),
+                    CustomTabBar(
+                      tabs: myTabs,
+                      selectedIndex: _selectedTab,
+                      onTabSelected: (index) {
+                        setState(() {
+                          _selectedTab = index;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Trending Now', style: Constants.headingStyle),
+                              const SizedBox(width: 4),
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: Constants.primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text('See all', style: Constants.subHeadingStyle),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.7,
+                          ),
+                      itemCount: 4,
+                      itemBuilder: (context, index) {
+                        final card = audioCards[index];
+                        return AudioCard(
+                          url: card['url']!,
+                          time: card['time']!,
+                          category: card['category']!,
+                          title: card['title']!,
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: EdgeInsetsGeometry.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Suggested Creators',
+                                style: Constants.headingStyle,
+                              ),
+                              const SizedBox(width: 4),
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: Constants.primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text('View all', style: Constants.subHeadingStyle),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 200,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: creators.length,
+                        itemBuilder: (context, index) {
+                          final creator = creators[index];
+                          return CreatorCard(
+                            imageUrl: creator['imageUrl']!,
+                            name: creator['name']!,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 100),
                 ],

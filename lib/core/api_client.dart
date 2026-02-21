@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:voiceapp/main.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -26,8 +28,14 @@ class ApiClient {
           }
           return handler.next(options);
         },
-        onError: (DioException e, handler) {
-          print(e);
+        onError: (DioException e, handler) async {
+          if (e.response?.statusCode == 401) {
+            await _storage.delete(key: "token");
+            navigatorKey.currentState?.pushNamedAndRemoveUntil(
+              '/login',
+              (route) => false,
+            );
+          }
           return handler.next(e);
         },
       ),

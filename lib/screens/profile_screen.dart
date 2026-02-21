@@ -5,6 +5,7 @@ import 'package:voiceapp/assets/constants.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
 import 'package:voiceapp/providers/profile_provider.dart';
 import 'package:voiceapp/models/voice_post.dart';
+import 'package:voiceapp/widgets/shimmer_loaders.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -95,14 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Consumer<ProfileProvider>(
                 builder: (context, profileProvider, _) {
                   if (profileProvider.isLoading) {
-                    return const Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: Constants.primaryColor,
-                        ),
-                      ),
-                    );
+                    return const ProfileSnippetsShimmer();
                   }
                   final uploads = profileProvider.myUploads;
                   return Padding(

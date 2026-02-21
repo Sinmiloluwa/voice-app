@@ -32,7 +32,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken;
-      print(idToken);
       if (idToken == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -101,8 +100,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 24),
                 _EmailField(controller: _usernameController),
                 const SizedBox(height: 16),
-                _PasswordField(controller: _passwordController),
-                const SizedBox(height: 24),
+                // _PasswordField(controller: _passwordController),
+                const SizedBox(height: 34),
                 _LoginButton(onPressed: _handleLogin),
                 const SizedBox(height: 24),
                 const _SignUpLink(),

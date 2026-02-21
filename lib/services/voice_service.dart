@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:voiceapp/core/api_client.dart';
+import 'package:voiceapp/models/feed_response.dart';
 import 'package:voiceapp/models/voice_post.dart';
 
 enum FeedType {
@@ -32,9 +33,16 @@ class VoiceApi {
     await api.post("/voice/upload", data: formData);
   }
 
-  Future<List<VoicePost>> getFeed({FeedType type = FeedType.forYou}) async {
-    final res = await api.get("/voice/feed?${type.value}");
-    return (res.data as List).map((e) => VoicePost.fromJson(e)).toList();
+  Future<FeedResponse> getFeed({FeedType type = FeedType.forYou}) async {
+    final res = await api.get("/voice/feed?type=${type.value}");
+    if (res.data is List) {
+      return FeedResponse(
+        voices: (res.data as List).map((e) => VoicePost.fromJson(e)).toList(),
+        users: [],
+        tags: [],
+      );
+    }
+    return FeedResponse.fromJson(res.data);
   }
 
   Future<void> addReaction(String postId, String emoji) async {
@@ -47,6 +55,15 @@ class VoiceApi {
 
   Future<List<VoicePost>> getMyUploads() async {
     final res = await api.get("/voice/my-uploads");
-    return (res.data as List).map((e) => VoicePost.fromJson(e)).toList();
+    final list = res.data is List ? res.data : (res.data["data"] ?? res.data["voices"] ?? []);
+    return (list as List).map((e) => VoicePost.fromJson(e)).toList();
+  }
+
+  Future<List<VoicePost>> searchPost(String query) async {
+    final res = await api.get("/search", queryParameters: {"q": query});
+    final data = res.data;
+    final list = data is List ? data : (data ?? []);
+    print(list);
+    return (list as List).map((e) => VoicePost.fromJson(e)).toList();
   }
 }

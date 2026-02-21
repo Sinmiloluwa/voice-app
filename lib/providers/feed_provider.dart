@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:voiceapp/models/user.dart';
 import 'package:voiceapp/models/voice_post.dart';
 import 'package:voiceapp/services/voice_service.dart';
 
@@ -6,10 +7,14 @@ class FeedProvider extends ChangeNotifier {
   final _voiceApi = VoiceApi();
 
   List<VoicePost> _posts = [];
+  List<UserModel> _users = [];
+  List<String> _tags = [];
   bool _isLoading = false;
   String? _error;
 
   List<VoicePost> get posts => _posts;
+  List<UserModel> get users => _users;
+  List<String> get tags => _tags;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -60,7 +65,26 @@ class FeedProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      _posts = await _voiceApi.getFeed(type: type);
+      final response = await _voiceApi.getFeed(type: type);
+      _posts = response.voices;
+      _users = response.users;
+      _tags = response.tags;
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      print(_error);
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> searchPost(String query) async{
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _posts = await _voiceApi.searchPost(query);
       _isLoading = false;
       notifyListeners();
     } catch (e) {

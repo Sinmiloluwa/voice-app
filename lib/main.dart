@@ -8,6 +8,8 @@ import 'package:voiceapp/screens/splash_screen.dart';
 import 'package:voiceapp/screens/login_screen.dart';
 import 'package:voiceapp/screens/view_screen.dart';
 
+final navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   runApp(const MyApp());
 }
@@ -43,6 +45,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         themeMode: ThemeMode.dark,
+        navigatorKey: navigatorKey,
         initialRoute: '/',
         routes: {
           '/': (context) => const SplashScreen(),
