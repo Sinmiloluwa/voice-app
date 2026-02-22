@@ -16,12 +16,25 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedTabIndex = 0;
   int _selectedNavIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    DiscoverScreen(),
-    NotificationScreen(),
-    ProfileScreen(),
+late final List<Widget> _screens;
+
+@override
+void initState() {
+  super.initState();
+
+  _screens = [
+    HomeScreen(
+      onProfileTap: () {
+        setState(() {
+          _selectedNavIndex = 3;
+        });
+      },
+    ),
+    const DiscoverScreen(),
+    const NotificationScreen(),
+    const ProfileScreen(),
   ];
+}
 
   @override
   Widget build(BuildContext context) {

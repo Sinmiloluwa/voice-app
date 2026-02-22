@@ -11,10 +11,10 @@ import 'package:voiceapp/services/voice_service.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
 import 'package:voiceapp/widgets/shimmer_loaders.dart';
 
-
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onProfileTap;
 
+  const HomeScreen({super.key, this.onProfileTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -31,7 +31,11 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  static const _tabFeedTypes = [FeedType.forYou, FeedType.following, FeedType.trending];
+  static const _tabFeedTypes = [
+    FeedType.forYou,
+    FeedType.following,
+    FeedType.trending,
+  ];
 
   void _onTabSelected(int index) {
     setState(() {
@@ -48,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Column(
               children: [
-                const _Header(),
+                _Header(onProfileTap: widget.onProfileTap),
                 const SizedBox(height: 16),
                 _TabBar(
                   selectedIndex: _selectedTabIndex,
@@ -116,7 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  final VoidCallback? onProfileTap;
+
+  const _Header({this.onProfileTap});
 
   @override
   Widget build(BuildContext context) {
@@ -127,28 +133,37 @@ class _Header extends StatelessWidget {
         children: [
           Builder(
             builder: (context) {
-              final avatarUrl = context.watch<AuthProvider>().user?.profilePicture;
-              return Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Constants.primaryColor.withOpacity(0.5),
-                    width: 2,
+              final avatarUrl = context
+                  .watch<AuthProvider>()
+                  .user
+                  ?.profilePicture;
+              return GestureDetector(
+                onTap: onProfileTap,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Constants.primaryColor.withOpacity(0.5),
+                      width: 2,
+                    ),
                   ),
-                ),
-                child: ClipOval(
-                  child: avatarUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: avatarUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => const Icon(
+                  child: ClipOval(
+                    child: avatarUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: avatarUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => const Icon(
+                              Icons.person,
+                              color: Constants.primaryColor,
+                            ),
+                          )
+                        : const Icon(
                             Icons.person,
                             color: Constants.primaryColor,
                           ),
-                        )
-                      : const Icon(Icons.person, color: Constants.primaryColor),
+                  ),
                 ),
               );
             },
@@ -527,10 +542,7 @@ class _ReactionButton extends StatelessWidget {
   final VoicePost post;
   final VoidCallback onTogglePicker;
 
-  const _ReactionButton({
-    required this.post,
-    required this.onTogglePicker,
-  });
+  const _ReactionButton({required this.post, required this.onTogglePicker});
 
   @override
   Widget build(BuildContext context) {
@@ -548,7 +560,9 @@ class _ReactionButton extends StatelessWidget {
               : Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: hasReacted ? Constants.primaryColor.withOpacity(0.3) : Colors.white10,
+            color: hasReacted
+                ? Constants.primaryColor.withOpacity(0.3)
+                : Colors.white10,
           ),
         ),
         child: Row(
@@ -576,10 +590,7 @@ class _ReactionPicker extends StatelessWidget {
   final VoicePost post;
   final ValueChanged<String> onSelected;
 
-  const _ReactionPicker({
-    required this.post,
-    required this.onSelected,
-  });
+  const _ReactionPicker({required this.post, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
