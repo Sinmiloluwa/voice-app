@@ -14,6 +14,7 @@ class AuthService {
     final token = res.data["token"];
     if (token != null) {
       await _storage.write(key: "token", value: token);
+      await sendStoredFcmToken();
     }
     return UserModel.fromJson(res.data["user"]);
   }
@@ -26,6 +27,7 @@ class AuthService {
     final token = res.data["token"];
     if (token != null) {
       await _storage.write(key: "token", value: token);
+      await sendStoredFcmToken();
     }
     return UserModel.fromJson(res.data["user"]);
   }
@@ -34,11 +36,23 @@ class AuthService {
     return await _storage.read(key: "token");
   }
 
+  Future<void> storeFcmTokenLocally(String fcmToken) async {
+    await _storage.write(key: "fcm_token", value: fcmToken);
+  }
+
   Future<void> saveFcmToken(String fcmToken) async {
     await api.post(
       "/notifications/fcm-token",
       data: {"token": fcmToken},
     );
+    await _storage.delete(key: "fcm_token");
+  }
+
+  Future<void> sendStoredFcmToken() async {
+    final fcmToken = await _storage.read(key: "fcm_token");
+    if (fcmToken != null) {
+      await saveFcmToken(fcmToken);
+    }
   }
 
   Future<void> logout() async {

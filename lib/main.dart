@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -87,11 +89,12 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _sendFcmToken(String token) async {
     try {
-      print(token);
       final authService = AuthService();
       final savedToken = await authService.getSavedToken();
       if (savedToken != null) {
         await authService.saveFcmToken(token);
+      } else {
+        await authService.storeFcmTokenLocally(token);
       }
     } catch (e) {
       print('Failed to send FCM token: $e');
@@ -109,6 +112,16 @@ class _MyAppState extends State<MyApp> {
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       print('User granted permission');
+    }
+
+    if (Platform.isIOS) {
+      String? apnsToken;
+      for (int i = 0; i < 10; i++) {
+        apnsToken = await messaging.getAPNSToken();
+        if (apnsToken != null) break;
+        await Future.delayed(const Duration(seconds: 1));
+      }
+      if (apnsToken == null) return;
     }
 
     String? token = await messaging.getToken();
