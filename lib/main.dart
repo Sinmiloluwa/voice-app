@@ -112,7 +112,10 @@ class _MyAppState extends State<MyApp> {
       final authService = AuthService();
       final savedToken = await authService.getSavedToken();
       if (savedToken != null) {
-        await authService.saveFcmToken(token);
+        final lastSent = await authService.getLastSentFcmToken();
+        if (lastSent != token) {
+          await authService.saveFcmToken(token);
+        }
       } else {
         await authService.storeFcmTokenLocally(token);
       }
@@ -152,7 +155,7 @@ class _MyAppState extends State<MyApp> {
     });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (message.notification != null) _showNotification(message);
+      if (message.notification != null && Platform.isAndroid) _showNotification(message);
       print('forefround message: ${message.notification?.title}');
     });
 

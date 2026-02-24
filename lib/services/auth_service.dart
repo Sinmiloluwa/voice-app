@@ -40,11 +40,16 @@ class AuthService {
     await _storage.write(key: "fcm_token", value: fcmToken);
   }
 
+  Future<String?> getLastSentFcmToken() async {
+    return await _storage.read(key: "sent_fcm_token");
+  }
+
   Future<void> saveFcmToken(String fcmToken) async {
     await api.post(
       "/notifications/fcm-token",
       data: {"token": fcmToken},
     );
+    await _storage.write(key: "sent_fcm_token", value: fcmToken);
     await _storage.delete(key: "fcm_token");
   }
 
