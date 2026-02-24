@@ -37,7 +37,10 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     0,
     message.notification?.title,
     message.notification?.body,
-    const NotificationDetails(android: androidDetails),
+    const NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(),
+    ),
   );
 }
 void main() async {
@@ -64,8 +67,25 @@ void main() async {
   await flutterLocalNotificationsPlugin.initialize(
     const InitializationSettings(
       android: androidSettings,
-      iOS: iosSettings,  
+      iOS: iosSettings,
     ),
+  );
+
+  // Create the Android notification channel
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'high_importance_channel',
+    'High Importance Notifications',
+    importance: Importance.high,
+  );
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  // Show foreground notifications on iOS
+  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
   );
 
   runApp(MyApp());
