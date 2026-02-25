@@ -4,6 +4,18 @@ import 'package:voiceapp/core/api_client.dart';
 import 'package:voiceapp/models/feed_response.dart';
 import 'package:voiceapp/models/voice_post.dart';
 
+class Category {
+  final String id;
+  final String name;
+
+  const Category({required this.id, required this.name});
+
+  factory Category.fromJson(Map<String, dynamic> json) => Category(
+        id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+        name: json['name'] ?? '',
+      );
+}
+
 enum FeedType {
   forYou('for-you'),
   trending('trending'),
@@ -17,20 +29,30 @@ class VoiceApi {
   final api = ApiClient().dio;
 
   Future<void> uploadVoice({
-    required File audioFile,
+    required File audio,
     required int duration,
-    String? title,
+    String? category,
   }) async {
     final formData = FormData.fromMap({
       "audio": await MultipartFile.fromFile(
-        audioFile.path,
+        audio.path,
         filename: "voice.m4a",
       ),
       "duration": duration,
-      if (title != null) "title": title,
+      if (category != null) "category": category,
     });
 
     await api.post("/voice/upload", data: formData);
+  }
+
+  Future<List<Category>> getCategories() async {
+    final res = await api.get("/categories");
+    final list = res.data is List
+        ? res.data
+        : (res.data["data"] ?? res.data["categories"] ?? []);
+    return (list as List)
+        .map((e) => Category.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<FeedResponse> getFeed({FeedType type = FeedType.forYou}) async {
