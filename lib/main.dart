@@ -111,10 +111,7 @@ class _MyAppState extends State<MyApp> {
       final authService = AuthService();
       final savedToken = await authService.getSavedToken();
       if (savedToken != null) {
-        final lastSent = await authService.getLastSentFcmToken();
-        if (lastSent != token) {
-          await authService.saveFcmToken(token);
-        }
+        await authService.saveFcmToken(token);
       } else {
         await authService.storeFcmTokenLocally(token);
       }
@@ -137,16 +134,19 @@ class _MyAppState extends State<MyApp> {
     }
 
     if (Platform.isIOS) {
+      print('is IOS');
       String? apnsToken;
       for (int i = 0; i < 10; i++) {
         apnsToken = await messaging.getAPNSToken();
         if (apnsToken != null) break;
         await Future.delayed(const Duration(seconds: 1));
       }
+      debugPrint("apntoken: $apnsToken");
       if (apnsToken == null) return;
     }
 
     String? token = await messaging.getToken();
+    debugPrint("token: $token");
     if (token != null) await _sendFcmToken(token);
 
     messaging.onTokenRefresh.listen((newToken) {
