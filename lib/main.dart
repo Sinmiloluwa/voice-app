@@ -147,10 +147,16 @@ class _MyAppState extends State<MyApp> {
       for (int i = 0; i < 10; i++) {
         apnsToken = await messaging.getAPNSToken();
         if (apnsToken != null) break;
-        await Future.delayed(const Duration(seconds: 1));
+        await Future.delayed(const Duration(seconds: 1)); // actually waits now
       }
+
+      if (apnsToken == null) {
+        Sentry.captureMessage('APNS token null after 10 retries');
+        return;
+      }
+
+      Sentry.captureMessage('APNS token received successfully');
       AppLogger.debug('APNS token', data: apnsToken);
-      if (apnsToken == null) return;
     }
 
     String? token = await messaging.getToken();
