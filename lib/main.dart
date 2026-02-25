@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:voiceapp/firebase_options.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
 import 'package:voiceapp/providers/feed_provider.dart';
@@ -14,6 +15,7 @@ import 'package:voiceapp/screens/splash_screen.dart';
 import 'package:voiceapp/screens/login_screen.dart';
 import 'package:voiceapp/screens/view_screen.dart';
 import 'package:voiceapp/services/auth_service.dart';
+import 'package:voiceapp/services/logger.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -24,7 +26,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 }
 
-  Future<void> _showNotification(RemoteMessage message) async {
+Future<void> _showNotification(RemoteMessage message) async {
   const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
     'high_importance_channel',
     'High Importance Notifications',
@@ -42,52 +44,58 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     ),
   );
 }
+
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = 'https://a87d7743207c746e8a120558e4e656ec@o4510947266461696.ingest.de.sentry.io/4510947269541968'; // replace with your DSN
+      options.tracesSampleRate = 1.0;
+    },
+    appRunner: () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
 
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Initialize local notifications
-  const AndroidInitializationSettings androidSettings =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+      const AndroidInitializationSettings androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  const DarwinInitializationSettings iosSettings =
-      DarwinInitializationSettings(
-    requestAlertPermission: true,
-    requestBadgePermission: true,
-    requestSoundPermission: true,
-  );    
-  await flutterLocalNotificationsPlugin.initialize(
-    const InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    ),
+      const DarwinInitializationSettings iosSettings =
+          DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+      await flutterLocalNotificationsPlugin.initialize(
+        const InitializationSettings(
+          android: androidSettings,
+          iOS: iosSettings,
+        ),
+      );
+
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'high_importance_channel',
+        'High Importance Notifications',
+        importance: Importance.high,
+      );
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      runApp(MyApp());
+    },
   );
-
-  // Create the Android notification channel
-  const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'high_importance_channel',
-    'High Importance Notifications',
-    importance: Importance.high,
-  );
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(channel);
-
-  // Show foreground notifications on iOS
-  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
-
-  runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -104,19 +112,19 @@ class _MyAppState extends State<MyApp> {
     _setupFCM();
   }
 
-  
-
   Future<void> _sendFcmToken(String token) async {
     try {
       final authService = AuthService();
       final savedToken = await authService.getSavedToken();
       if (savedToken != null) {
         await authService.saveFcmToken(token);
+        AppLogger.info('Token saved to db');
       } else {
+        AppLogger.info('Token saved locally');
         await authService.storeFcmTokenLocally(token);
       }
     } catch (e) {
-      print('Failed to send FCM token: $e');
+      AppLogger.error('Failed to send FCM token', exception: e);
     }
   }
 
@@ -126,27 +134,27 @@ class _MyAppState extends State<MyApp> {
     NotificationSettings settings = await messaging.requestPermission(
       alert: true,
       badge: true,
-      sound: true
+      sound: true,
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('User granted permission');
+      AppLogger.info('User granted permission');
+      Sentry.captureMessage('permission check');
     }
 
     if (Platform.isIOS) {
-      print('is IOS');
       String? apnsToken;
       for (int i = 0; i < 10; i++) {
         apnsToken = await messaging.getAPNSToken();
         if (apnsToken != null) break;
         await Future.delayed(const Duration(seconds: 1));
       }
-      debugPrint("apntoken: $apnsToken");
+      AppLogger.debug('APNS token', data: apnsToken);
       if (apnsToken == null) return;
     }
 
     String? token = await messaging.getToken();
-    debugPrint("token: $token");
+    AppLogger.debug('FCM token', data: token);
     if (token != null) await _sendFcmToken(token);
 
     messaging.onTokenRefresh.listen((newToken) {
@@ -155,13 +163,14 @@ class _MyAppState extends State<MyApp> {
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (message.notification != null && Platform.isAndroid) _showNotification(message);
-      print('forefround message: ${message.notification?.title}');
+      AppLogger.info('Foreground message', data: message.notification?.title);
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('Notification tapped: ${message.data}');
+      AppLogger.info('Notification tapped', data: message.data);
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
