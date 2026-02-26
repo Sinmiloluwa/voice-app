@@ -33,8 +33,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animationController.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
-        final authProvider = context.read<AuthProvider>();
-        final hasSession = await authProvider.checkSession();
+        bool hasSession = false;
+        try {
+          final authProvider = context.read<AuthProvider>();
+          hasSession = await authProvider.checkSession();
+        } catch (_) {
+          // Secure storage can fail on some Android devices; default to login
+        }
         if (!mounted) return;
         if (hasSession) {
           Navigator.pushReplacementNamed(context, '/main');

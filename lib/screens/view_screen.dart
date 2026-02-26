@@ -162,12 +162,21 @@ class _ViewScreenState extends State<ViewScreen> {
     final file = File(_filePath!);
     if (!await file.exists()) return;
 
+    if (_selectedCategory == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a category before posting')),
+        );
+      }
+      return;
+    }
+
     setState(() => _isUploading = true);
     try {
       await VoiceApi().uploadVoice(
         audio: file,
         duration: _elapsed.inSeconds,
-        category: _selectedCategory?.name,
+        category: _selectedCategory!.name,
       );
       if (mounted) {
         Navigator.pop(context);

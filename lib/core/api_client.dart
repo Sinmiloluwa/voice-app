@@ -29,6 +29,7 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) async {
+          print("error message ${e.message}");
           if (e.response?.statusCode == 401) {
             await _storage.delete(key: "token");
             navigatorKey.currentState?.pushNamedAndRemoveUntil(
