@@ -3,7 +3,7 @@ set -e
 
 FIREBASE_APP_ID="1:420814368276:android:3e5eab34e9ade965a3c101"
 RELEASE_NOTES="${1:-Beta release}"
-TESTERS="${TESTERS:-}"  # Set via env var or edit below: e.g. "tester@example.com"
+TESTERS="${TESTERS:-olabodeodetunde1@gmail.com,babtopeajayi2@gmail.com}"
 
 echo "==> Building release APK..."
 flutter build apk --release
