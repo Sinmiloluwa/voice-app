@@ -446,70 +446,78 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                     ),
                   ),
                 const SizedBox(height: 12),
-                Stack(
-                  clipBehavior: Clip.none,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _EngagementButton(
-                          icon: Icons.favorite_outline,
-                          count: widget.post.likes,
-                          color: Constants.primaryColor,
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => CommentScreen(
-                                  postId: widget.post.id,
-                                  originalAuthor: widget.post.username,
-                                  originalTitle: widget.post.title ?? '',
-                                  audioUrl: widget.post.audioUrl,
-                                  duration: widget.post.durationFormatted,
-                                  likes: widget.post.likes,
-                                  commentCount: widget.post.comments,
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 150),
+                      curve: Curves.easeOut,
+                      child: AnimatedOpacity(
+                        opacity: _showReactionPicker ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 120),
+                        child: _showReactionPicker
+                            ? Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: _ReactionPicker(
+                                  post: widget.post,
+                                  onSelected: (emoji) {
+                                    final key = _emojiToKey[emoji] ?? emoji;
+                                    context.read<FeedProvider>().reactToPost(
+                                      widget.post.id,
+                                      key,
+                                    );
+                                    setState(() {
+                                      _showReactionPicker = false;
+                                    });
+                                  },
                                 ),
-                              ),
-                            );
-                          },
-                          child: _EngagementButton(
-                            icon: Icons.chat_bubble_outline,
-                            count: widget.post.comments,
-                          ),
-                        ),
-                        _ReactionButton(
-                          post: widget.post,
-                          onTogglePicker: () {
-                            setState(() {
-                              _showReactionPicker = !_showReactionPicker;
-                            });
-                          },
-                        ),
-                        const Icon(Icons.share, color: Colors.white30),
-                      ],
-                    ),
-                    if (_showReactionPicker)
-                      Positioned(
-                        bottom: 40,
-                        right: 24,
-                        child: _ReactionPicker(
-                          post: widget.post,
-                          onSelected: (emoji) {
-                            final key = _emojiToKey[emoji] ?? emoji;
-                            context.read<FeedProvider>().reactToPost(
-                              widget.post.id,
-                              key,
-                            );
-                            setState(() {
-                              _showReactionPicker = false;
-                            });
-                          },
-                        ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
-                  ],
-                ),
+                    ),
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _EngagementButton(
+                            icon: Icons.favorite_outline,
+                            count: widget.post.likes,
+                            color: Constants.primaryColor,
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CommentScreen(
+                                    postId: widget.post.id,
+                                    originalAuthor: widget.post.username,
+                                    originalTitle: widget.post.title ?? '',
+                                    audioUrl: widget.post.audioUrl,
+                                    duration: widget.post.durationFormatted,
+                                    likes: widget.post.likes,
+                                    commentCount: widget.post.comments,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: _EngagementButton(
+                              icon: Icons.chat_bubble_outline,
+                              count: widget.post.comments,
+                            ),
+                          ),
+                          _ReactionButton(
+                            post: widget.post,
+                            onTogglePicker: () {
+                              setState(() {
+                                _showReactionPicker = !_showReactionPicker;
+                              });
+                            },
+                          ),
+                          const Icon(Icons.share, color: Colors.white30),
+                        ],
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
