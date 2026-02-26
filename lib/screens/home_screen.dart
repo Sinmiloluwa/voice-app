@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 import 'package:voiceapp/services/audio_player_service.dart';
 import 'package:voiceapp/screens/comment_screen.dart';
@@ -252,6 +255,7 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
   bool _isPlaying = false;
   bool _showReactionPicker = false;
   late AnimationController _waveformController;
+  StreamSubscription<PlayerState>? _playerStateSub;
 
   @override
   void initState() {
@@ -260,26 +264,39 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
+    _playerStateSub = AudioPlayerService().player.playerStateStream.listen(_onPlayerState);
+  }
+
+  void _onPlayerState(PlayerState state) {
+    final isMine = AudioPlayerService().currentUrl == widget.post.audioUrl;
+    final playing = state.playing &&
+        state.processingState != ProcessingState.completed &&
+        isMine;
+    if (playing == _isPlaying) return;
+    setState(() {
+      _isPlaying = playing;
+      if (_isPlaying) {
+        _waveformController.repeat();
+      } else {
+        _waveformController.stop();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _playerStateSub?.cancel();
     _waveformController.dispose();
     super.dispose();
   }
 
   void _togglePlayback() {
     final audioService = AudioPlayerService();
-    setState(() {
-      _isPlaying = !_isPlaying;
-      if (_isPlaying) {
-        _waveformController.repeat();
-        audioService.playAudio(widget.post.audioUrl);
-      } else {
-        _waveformController.stop();
-        audioService.pauseAudio();
-      }
-    });
+    if (_isPlaying) {
+      audioService.pauseAudio();
+    } else {
+      audioService.playAudio(widget.post.audioUrl);
+    }
   }
 
   @override
@@ -429,65 +446,68 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
                     ),
                   ),
                 const SizedBox(height: 12),
-                if (_showReactionPicker)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _ReactionPicker(
-                        post: widget.post,
-                        onSelected: (emoji) {
-                          final key = _emojiToKey[emoji] ?? emoji;
-                          context.read<FeedProvider>().reactToPost(
-                            widget.post.id,
-                            key,
-                          );
-                          setState(() {
-                            _showReactionPicker = false;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    _EngagementButton(
-                      icon: Icons.favorite_outline,
-                      count: widget.post.likes,
-                      color: Constants.primaryColor,
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CommentScreen(
-                              postId: widget.post.id,
-                              originalAuthor: widget.post.username,
-                              originalTitle: widget.post.title ?? '',
-                              audioUrl: widget.post.audioUrl,
-                              duration: widget.post.durationFormatted,
-                              likes: widget.post.likes,
-                              commentCount: widget.post.comments,
-                            ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _EngagementButton(
+                          icon: Icons.favorite_outline,
+                          count: widget.post.likes,
+                          color: Constants.primaryColor,
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CommentScreen(
+                                  postId: widget.post.id,
+                                  originalAuthor: widget.post.username,
+                                  originalTitle: widget.post.title ?? '',
+                                  audioUrl: widget.post.audioUrl,
+                                  duration: widget.post.durationFormatted,
+                                  likes: widget.post.likes,
+                                  commentCount: widget.post.comments,
+                                ),
+                              ),
+                            );
+                          },
+                          child: _EngagementButton(
+                            icon: Icons.chat_bubble_outline,
+                            count: widget.post.comments,
                           ),
-                        );
-                      },
-                      child: _EngagementButton(
-                        icon: Icons.chat_bubble_outline,
-                        count: widget.post.comments,
+                        ),
+                        _ReactionButton(
+                          post: widget.post,
+                          onTogglePicker: () {
+                            setState(() {
+                              _showReactionPicker = !_showReactionPicker;
+                            });
+                          },
+                        ),
+                        const Icon(Icons.share, color: Colors.white30),
+                      ],
+                    ),
+                    if (_showReactionPicker)
+                      Positioned(
+                        bottom: 40,
+                        right: 24,
+                        child: _ReactionPicker(
+                          post: widget.post,
+                          onSelected: (emoji) {
+                            final key = _emojiToKey[emoji] ?? emoji;
+                            context.read<FeedProvider>().reactToPost(
+                              widget.post.id,
+                              key,
+                            );
+                            setState(() {
+                              _showReactionPicker = false;
+                            });
+                          },
+                        ),
                       ),
-                    ),
-                    _ReactionButton(
-                      post: widget.post,
-                      onTogglePicker: () {
-                        setState(() {
-                          _showReactionPicker = !_showReactionPicker;
-                        });
-                      },
-                    ),
-                    const Icon(Icons.share, color: Colors.white30),
                   ],
                 ),
               ],
@@ -651,35 +671,53 @@ class _WaveformPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    const barWidth = 3.0;
+    const spacing = 2.5;
+    final totalBars = ((size.width - 16) / (barWidth + spacing)).toInt();
+    final centerY = size.height / 2;
+    final maxBarHeight = size.height * 0.44;
+    final animValue = animation.value * 2 * pi;
+
     final paint = Paint()
-      ..color = Constants.primaryColor
-      ..strokeWidth = 3
+      ..strokeWidth = barWidth
       ..strokeCap = StrokeCap.round;
 
-    final barWidth = 4.0;
-    final spacing = 2.0;
-    final totalBars = ((size.width / (barWidth + spacing)).toInt());
-    final centerY = size.height / 2;
-
     for (int i = 0; i < totalBars; i++) {
+      final t = i / totalBars;
       final x = i * (barWidth + spacing) + 8;
 
-      final seed = i * 12.5;
-      final baseHeight =
-          (size.height * 0.3) + ((sin(seed) * 0.5 + 0.5) * size.height * 0.5);
+      // Combine multiple frequencies for an organic, realistic waveform shape
+      final h1 = sin(t * pi * 4.1 + 0.5) * 0.30;
+      final h2 = sin(t * pi * 9.3 + 1.8) * 0.22;
+      final h3 = sin(t * pi * 17.7 + 0.9) * 0.13;
+      final envelope = sin(t * pi); // taller in the middle, shorter at edges
+      final normalizedHeight =
+          ((h1 + h2 + h3).abs() * 0.7 + envelope * 0.3 + 0.05).clamp(0.05, 1.0);
 
-      final animatedHeight = isPlaying
-          ? baseHeight * (0.5 + 0.5 * sin(seed + animation.value).abs())
-          : baseHeight * 0.3;
+      final double barHeight;
+      if (isPlaying) {
+        final phase = t * pi * 5;
+        final anim = 0.5 + 0.5 * sin(animValue * 2 + phase).abs();
+        barHeight = normalizedHeight * maxBarHeight * (0.55 + 0.45 * anim);
+      } else {
+        barHeight = normalizedHeight * maxBarHeight * 0.22;
+      }
+
+      final opacity = isPlaying
+          ? (0.45 + 0.55 * (barHeight / maxBarHeight)).clamp(0.45, 1.0)
+          : 0.30;
+      paint.color = Constants.primaryColor.withValues(alpha: opacity);
 
       canvas.drawLine(
-        Offset(x, centerY - animatedHeight / 2),
-        Offset(x, centerY + animatedHeight / 2),
+        Offset(x, centerY - barHeight),
+        Offset(x, centerY + barHeight),
         paint,
       );
     }
   }
 
   @override
-  bool shouldRepaint(_WaveformPainter oldDelegate) => true;
+  bool shouldRepaint(_WaveformPainter oldDelegate) =>
+      oldDelegate.isPlaying != isPlaying ||
+      oldDelegate.animation.value != animation.value;
 }
