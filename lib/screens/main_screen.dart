@@ -32,7 +32,9 @@ void initState() {
     ),
     const DiscoverScreen(),
     const NotificationScreen(),
-    const ProfileScreen(),
+    ProfileScreen(
+      onBack: () => setState(() => _selectedNavIndex = 0),
+    ),
   ];
 }
 

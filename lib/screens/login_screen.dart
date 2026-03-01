@@ -12,12 +12,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -60,8 +60,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    final username = _usernameController.text.trim();
-    if (username.isEmpty) {
+    final identifier = _identifierController.text.trim();
+    final password = _passwordController.text.trim();
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a username')),
+      );
+      return;
+    }
+    if (identifier.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a username')),
       );
@@ -69,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.loginAnonymous(username);
+    final success = await authProvider.login(identifier, password);
 
     if (!mounted) return;
     if (success) {
@@ -98,9 +105,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 24),
                 const _Divider(),
                 const SizedBox(height: 24),
-                _EmailField(controller: _usernameController),
+                _EmailField(controller: _identifierController),
                 const SizedBox(height: 16),
-                // _PasswordField(controller: _passwordController),
+                _PasswordField(controller: _passwordController),
                 const SizedBox(height: 34),
                 _LoginButton(onPressed: _handleLogin),
                 const SizedBox(height: 24),
@@ -364,7 +371,7 @@ class _SignUpLink extends StatelessWidget {
           style: TextStyle(color: Colors.white70),
         ),
         GestureDetector(
-          onTap: () {},
+          onTap: () => Navigator.pushReplacementNamed(context, '/register'),
           child: const Text(
             'Sign up',
             style: TextStyle(color: Constants.primaryColor, fontWeight: FontWeight.bold),

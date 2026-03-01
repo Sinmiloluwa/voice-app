@@ -13,6 +13,7 @@ import 'package:voiceapp/providers/profile_provider.dart';
 import 'package:voiceapp/screens/main_screen.dart';
 import 'package:voiceapp/screens/splash_screen.dart';
 import 'package:voiceapp/screens/login_screen.dart';
+import 'package:voiceapp/screens/register_screen.dart';
 import 'package:voiceapp/screens/view_screen.dart';
 import 'package:voiceapp/services/auth_service.dart';
 import 'package:voiceapp/services/logger.dart';
@@ -215,6 +216,7 @@ class _MyAppState extends State<MyApp> {
           '/': (context) => const SplashScreen(),
           '/main': (context) => MainScreen(),
           '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
           '/view': (context) => const ViewScreen(),
         },
       ),

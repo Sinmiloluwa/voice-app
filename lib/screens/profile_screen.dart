@@ -4,11 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
 import 'package:voiceapp/providers/profile_provider.dart';
-import 'package:voiceapp/models/voice_post.dart';
 import 'package:voiceapp/widgets/shimmer_loaders.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final VoidCallback? onBack;
+
+  const ProfileScreen({super.key, this.onBack});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -57,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const _ProfileHeader(),
+              _ProfileHeader(onBack: widget.onBack),
               const SizedBox(height: 24),
               const _Avatar(),
               const SizedBox(height: 16),
@@ -169,7 +170,9 @@ class _ProfileScreenState extends State<ProfileScreen>
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
+  final VoidCallback? onBack;
+
+  const _ProfileHeader({this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +182,7 @@ class _ProfileHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () => onBack != null ? onBack!() : Navigator.pop(context),
             child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
           ),
           const Text(

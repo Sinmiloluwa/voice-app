@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:voiceapp/core/api_error.dart';
 import 'package:voiceapp/models/user.dart';
 import 'package:voiceapp/models/voice_post.dart';
 import 'package:voiceapp/services/voice_service.dart';
@@ -72,7 +73,7 @@ class FeedProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = extractApiError(e);
       print(_error);
       _isLoading = false;
       notifyListeners();
@@ -88,7 +89,7 @@ class FeedProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = extractApiError(e);
       print(_error);
       _isLoading = false;
       notifyListeners();

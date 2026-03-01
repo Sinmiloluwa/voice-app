@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:voiceapp/core/api_error.dart';
 import 'package:voiceapp/models/user.dart';
 import 'package:voiceapp/services/auth_service.dart';
 
@@ -19,17 +20,34 @@ class AuthProvider extends ChangeNotifier {
     return token != null;
   }
 
-  Future<bool> loginAnonymous(String username) async {
+  Future<bool> login(String identifier, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
-      _user = await _authService.anonymousLogin(username);
+      _user = await _authService.login(identifier, password);
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = extractApiError(e);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> register(String username, String email, String password) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _user = await _authService.register(username, email, password);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = extractApiError(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -46,7 +64,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = extractApiError(e);
       _isLoading = false;
       notifyListeners();
       return false;

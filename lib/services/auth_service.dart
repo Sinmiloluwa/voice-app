@@ -6,10 +6,27 @@ class AuthService {
   final api = ApiClient().dio;
   final _storage = const FlutterSecureStorage();
 
-  Future<UserModel> anonymousLogin(String username) async {
+  Future<UserModel> login(String identifier, String password) async {
     final res = await api.post(
-      "/auth/anonymous",
-      data: {"username": username},
+      "/auth/login",
+      data: {"identifier": identifier, "password": password},
+    );
+    final token = res.data["token"];
+    if (token != null) {
+      await _storage.write(key: "token", value: token);
+      await sendStoredFcmToken();
+    }
+    return UserModel.fromJson(res.data["user"]);
+  }
+
+  Future<UserModel> register(String username, String email, String password) async {
+    final res = await api.post(
+      "/auth/register",
+      data: {
+        "email": email, 
+        "password": password,
+        "username" : username
+      },
     );
     final token = res.data["token"];
     if (token != null) {

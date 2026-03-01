@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:voiceapp/core/api_error.dart';
 import 'package:voiceapp/models/voice_post.dart';
 import 'package:voiceapp/models/user.dart';
 import 'package:voiceapp/services/voice_service.dart';
@@ -27,7 +28,7 @@ class ProfileProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = extractApiError(e);
       _isLoading = false;
       notifyListeners();
     }
@@ -38,7 +39,7 @@ class ProfileProvider extends ChangeNotifier {
       _following = await _userService.getFollowing();
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = extractApiError(e);
       notifyListeners();
     }
   }
@@ -49,7 +50,7 @@ class ProfileProvider extends ChangeNotifier {
       await loadFollowing();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = extractApiError(e);
       notifyListeners();
       return false;
     }
@@ -61,7 +62,7 @@ class ProfileProvider extends ChangeNotifier {
       await loadFollowing();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = extractApiError(e);
       notifyListeners();
       return false;
     }
