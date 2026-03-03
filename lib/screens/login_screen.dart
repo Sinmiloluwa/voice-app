@@ -14,6 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -25,7 +26,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGoogleLogin() async {
     try {
       final googleSignIn = GoogleSignIn(
-        serverClientId: '436648307274-tdlhrrv14kdvt59e2purgdjvm0lji1et.apps.googleusercontent.com',
+        serverClientId:
+            '436648307274-tdlhrrv14kdvt59e2purgdjvm0lji1et.apps.googleusercontent.com',
       );
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
@@ -34,9 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final idToken = googleAuth.idToken;
       if (idToken == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to get Google ID token')),
-        );
+        setState(() => _errorMessage = 'Failed to get Google ID token');
         return;
       }
 
@@ -45,47 +45,72 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
       if (success) {
+        setState(() => _errorMessage = null);
         Navigator.pushReplacementNamed(context, '/main');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(authProvider.error ?? 'Google login failed')),
-        );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google sign-in error: $e')),
-      );
+      setState(() => _errorMessage = 'Google sign-in error: $e');
     }
   }
 
   Future<void> _handleLogin() async {
     final identifier = _identifierController.text.trim();
     final password = _passwordController.text.trim();
-    if (password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a username')),
-      );
+
+    if (identifier.isEmpty) {
+      setState(() => _errorMessage = 'Please enter a username or email');
       return;
     }
-    if (identifier.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a username')),
-      );
+    if (password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter a password');
       return;
     }
 
     final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.login(identifier, password);
-
-    if (!mounted) return;
-    if (success) {
-      Navigator.pushReplacementNamed(context, '/main');
-    } else {
+    try {
+      final success = await authProvider.login(identifier, password);
+      if (!mounted) return;
+      if (success) {
+        setState(() => _errorMessage = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Welcome back!'),
+            backgroundColor: Constants.primaryColor,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(milliseconds: 1500),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/main');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.error ?? 'Login failed'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(milliseconds: 3000),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch(e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(authProvider.error ?? 'Login failed')),
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(milliseconds: 3000),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       );
     }
+    
+
+    
   }
 
   @override
@@ -108,8 +133,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 _EmailField(controller: _identifierController),
                 const SizedBox(height: 16),
                 _PasswordField(controller: _passwordController),
-                const SizedBox(height: 34),
-                _LoginButton(onPressed: _handleLogin),
+                const SizedBox(height: 24),
+                Consumer<AuthProvider>(
+                  builder: (context, auth, _) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _LoginButton(
+                          isLoading: auth.isLoading,
+                          onPressed: _handleLogin,
+                        ),
+                      ],
+                    );
+                  },
+                ),
                 const SizedBox(height: 24),
                 const _SignUpLink(),
                 const SizedBox(height: 32),
@@ -123,6 +160,37 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+
+  const _ErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _BackButton extends StatelessWidget {
   const _BackButton();
 
@@ -131,7 +199,8 @@ class _BackButton extends StatelessWidget {
     return Row(
       children: [
         GestureDetector(
-          onTap: () => Navigator.pushReplacementNamed(context, '/main', arguments: {}),
+          onTap: () =>
+              Navigator.pushReplacementNamed(context, '/main', arguments: {}),
           child: Container(
             width: 40,
             height: 40,
@@ -149,7 +218,7 @@ class _BackButton extends StatelessWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const Spacer(),
-        SizedBox(width: 40),
+        const SizedBox(width: 40),
       ],
     );
   }
@@ -189,7 +258,10 @@ class _LogoCircle extends StatelessWidget {
       height: 100,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Constants.primaryColor.withOpacity(0.5), width: 2),
+        border: Border.all(
+          color: Constants.primaryColor.withOpacity(0.5),
+          width: 2,
+        ),
       ),
       child: const Center(
         child: Icon(Icons.graphic_eq, size: 48, color: Constants.primaryColor),
@@ -310,7 +382,11 @@ class _PasswordFieldState extends State<_PasswordField> {
         const SizedBox(height: 12),
         const Text(
           'Forgot password?',
-          style: TextStyle(color: Constants.primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
+          style: TextStyle(
+            color: Constants.primaryColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
         ),
       ],
     );
@@ -318,42 +394,39 @@ class _PasswordFieldState extends State<_PasswordField> {
 }
 
 class _LoginButton extends StatelessWidget {
+  final bool isLoading;
   final VoidCallback onPressed;
 
-  const _LoginButton({required this.onPressed});
+  const _LoginButton({required this.isLoading, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, auth, child) {
-        return SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: auth.isLoading ? null : onPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Constants.primaryColor,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(26),
-              ),
-            ),
-            child: auth.isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.black,
-                    ),
-                  )
-                : const Text(
-                    'Login',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Constants.primaryColor,
+          foregroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(26),
           ),
-        );
-      },
+        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.black,
+                ),
+              )
+            : const Text(
+                'Login',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+      ),
     );
   }
 }
@@ -374,7 +447,10 @@ class _SignUpLink extends StatelessWidget {
           onTap: () => Navigator.pushReplacementNamed(context, '/register'),
           child: const Text(
             'Sign up',
-            style: TextStyle(color: Constants.primaryColor, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Constants.primaryColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -392,17 +468,29 @@ class _Footer extends StatelessWidget {
       children: const [
         Text(
           'TERMS',
-          style: TextStyle(color: Colors.white30, fontSize: 12, letterSpacing: 0.5),
+          style: TextStyle(
+            color: Colors.white30,
+            fontSize: 12,
+            letterSpacing: 0.5,
+          ),
         ),
         SizedBox(width: 24),
         Text(
           'PRIVACY',
-          style: TextStyle(color: Colors.white30, fontSize: 12, letterSpacing: 0.5),
+          style: TextStyle(
+            color: Colors.white30,
+            fontSize: 12,
+            letterSpacing: 0.5,
+          ),
         ),
         SizedBox(width: 24),
         Text(
           'HELP',
-          style: TextStyle(color: Colors.white30, fontSize: 12, letterSpacing: 0.5),
+          style: TextStyle(
+            color: Colors.white30,
+            fontSize: 12,
+            letterSpacing: 0.5,
+          ),
         ),
       ],
     );

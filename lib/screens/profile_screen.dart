@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:math';
 import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
 import 'package:voiceapp/providers/profile_provider.dart';
+import 'package:voiceapp/services/user_service.dart';
 import 'package:voiceapp/widgets/shimmer_loaders.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -60,7 +62,14 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: [
               _ProfileHeader(onBack: widget.onBack),
               const SizedBox(height: 24),
-              const _Avatar(),
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) {
+                  final user = auth.user;
+                  return _Avatar(
+                    profileImage: user?.profilePicture ?? 'assets/icons/profile.png'
+                    );
+                }
+              ),
               const SizedBox(height: 16),
               Consumer<AuthProvider>(
                 builder: (context, auth, _) {
@@ -72,7 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 },
               ),
               const SizedBox(height: 24),
-              const _ActionButtons(),
+              // const _ActionButtons(),
               const SizedBox(height: 24),
               Consumer<AuthProvider>(
                 builder: (context, auth, _) {
@@ -202,12 +211,33 @@ class _ProfileHeader extends StatelessWidget {
                     context, '/login', (route) => false,
                   );
                 }
+              } else if (value == 'Share Profile') {
+                final userId = context.read<AuthProvider>().user?.id ?? '';
+                final link = 'https://sonarapp.io/profile/$userId';
+                if (context.mounted) {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => _ShareProfileSheet(link: link),
+                  );
+                }
               }
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'logout',
                 child: Text('Logout'),
+              ),
+              const PopupMenuItem(
+                value: 'Share Profile',
+                padding: EdgeInsets.zero,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Text('Share'),
+                    Icon(Icons.ios_share, size: 23,)
+                  ],
+                ),
               ),
             ],
             child: Container(
@@ -227,7 +257,9 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar();
+  final String? profileImage;
+
+  const _Avatar({this.profileImage});
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +275,7 @@ class _Avatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: Image.asset(
-          'assets/icons/profile.png',
+          profileImage!,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
             return CircleAvatar(
@@ -312,59 +344,59 @@ class _UserInfo extends StatelessWidget {
   }
 }
 
-class _ActionButtons extends StatelessWidget {
-  const _ActionButtons();
+// class _ActionButtons extends StatelessWidget {
+//   const _ActionButtons();
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 60),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 42,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(21),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
-              ),
-              child: const Center(
-                child: Text(
-                  'Follow',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              height: 42,
-              decoration: BoxDecoration(
-                color: Constants.primaryColor,
-                borderRadius: BorderRadius.circular(21),
-              ),
-              child: const Center(
-                child: Text(
-                  'Message',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: const EdgeInsets.symmetric(horizontal: 60),
+//       child: Row(
+//         children: [
+//           Expanded(
+//             child: Container(
+//               height: 42,
+//               decoration: BoxDecoration(
+//                 borderRadius: BorderRadius.circular(21),
+//                 border: Border.all(color: Colors.white.withOpacity(0.3)),
+//               ),
+//               child: const Center(
+//                 child: Text(
+//                   'Follow',
+//                   style: TextStyle(
+//                     color: Colors.white,
+//                     fontWeight: FontWeight.bold,
+//                     fontSize: 14,
+//                   ),
+//                 ),
+//               ),
+//             ),
+//           ),
+//           const SizedBox(width: 12),
+//           Expanded(
+//             child: Container(
+//               height: 42,
+//               decoration: BoxDecoration(
+//                 color: Constants.primaryColor,
+//                 borderRadius: BorderRadius.circular(21),
+//               ),
+//               child: const Center(
+//                 child: Text(
+//                   'Message',
+//                   style: TextStyle(
+//                     color: Colors.black,
+//                     fontWeight: FontWeight.bold,
+//                     fontSize: 14,
+//                   ),
+//                 ),
+//               ),
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 class _StatsRow extends StatelessWidget {
   final int followers;
@@ -672,6 +704,122 @@ class _SnippetWaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SnippetWaveformPainter oldDelegate) => true;
+}
+
+class _ShareProfileSheet extends StatefulWidget {
+  final String link;
+
+  const _ShareProfileSheet({required this.link});
+
+  @override
+  State<_ShareProfileSheet> createState() => _ShareProfileSheetState();
+}
+
+class _ShareProfileSheetState extends State<_ShareProfileSheet> {
+  bool _copied = false;
+  Uint8List? _qrBytes;
+  bool _loadingQr = true;
+  bool _qrError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchQr();
+  }
+
+  Future<void> _fetchQr() async {
+    try {
+      final bytes = await UserService().getProfileQrCode();
+      if (mounted) setState(() { _qrBytes = bytes; _loadingQr = false; });
+    } catch (_) {
+      if (mounted) setState(() { _loadingQr = false; _qrError = true; });
+    }
+  }
+
+  void _copyLink() {
+    Clipboard.setData(ClipboardData(text: widget.link));
+    setState(() => _copied = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Share Profile',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: 232,
+            height: 232,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: _loadingQr
+                ? const Center(child: CircularProgressIndicator(color: Constants.primaryColor))
+                : _qrError
+                    ? const Center(child: Icon(Icons.error_outline, color: Colors.red, size: 40))
+                    : Image.memory(_qrBytes!, fit: BoxFit.contain),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.link,
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _copyLink,
+                  child: Icon(
+                    _copied ? Icons.check : Icons.copy,
+                    color: _copied ? Constants.primaryColor : Colors.white54,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class Snippet {

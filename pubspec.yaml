@@ -51,6 +51,7 @@ dependencies:
   flutter_local_notifications: ^17.0.0
   sentry_flutter: ^8.13.2
   app_links: ^7.0.0
+  qr_flutter: ^4.1.0
 
 
 dev_dependencies:

@@ -22,10 +22,10 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> login(String identifier, String password) async {
     _isLoading = true;
-    _error = null;
     notifyListeners();
     try {
       _user = await _authService.login(identifier, password);
+      _error = null;
       _isLoading = false;
       notifyListeners();
       return true;
@@ -39,10 +39,10 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> register(String username, String email, String password) async {
     _isLoading = true;
-    _error = null;
     notifyListeners();
     try {
       _user = await _authService.register(username, email, password);
+      _error = null;
       _isLoading = false;
       notifyListeners();
       return true;
@@ -56,10 +56,10 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> loginGoogle(String idToken) async {
     _isLoading = true;
-    _error = null;
     notifyListeners();
     try {
       _user = await _authService.googleLogin(idToken);
+      _error = null;
       _isLoading = false;
       notifyListeners();
       return true;

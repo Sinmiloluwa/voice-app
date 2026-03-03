@@ -30,7 +30,8 @@ class ApiClient {
         },
         onError: (DioException e, handler) async {
           print("error message ${e.message}");
-          if (e.response?.statusCode == 401) {
+          final isAuthEndpoint = e.requestOptions.path.startsWith('/auth/');
+          if (e.response?.statusCode == 401 && !isAuthEndpoint) {
             await _storage.delete(key: "token");
             navigatorKey.currentState?.pushNamedAndRemoveUntil(
               '/login',
