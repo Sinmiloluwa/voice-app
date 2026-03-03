@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
+import 'package:voiceapp/providers/deep_link_provider.dart';
 import 'package:voiceapp/screens/discover_screen.dart';
 import 'package:voiceapp/screens/home_screen.dart';
 import 'package:voiceapp/screens/notification_screen.dart';
@@ -37,6 +39,26 @@ void initState() {
     ),
   ];
 }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final deepLink = context.watch<DeepLinkProvider>().pending;
+    if (deepLink != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleDeepLink(deepLink);
+        context.read<DeepLinkProvider>().consume();
+      });
+    }
+  }
+
+  void _handleDeepLink(DeepLinkData link) {
+    if (link.destination == DeepLinkDestination.profile) {
+      setState(() => _selectedNavIndex = 3);
+    } else if (link.destination == DeepLinkDestination.post) {
+      setState(() => _selectedNavIndex = 0);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

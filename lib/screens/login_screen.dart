@@ -348,7 +348,7 @@ class _LoginButton extends StatelessWidget {
                     ),
                   )
                 : const Text(
-                    'Login with Username',
+                    'Login',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
           ),

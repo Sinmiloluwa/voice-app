@@ -50,6 +50,7 @@ dependencies:
   firebase_messaging: ^16.1.1
   flutter_local_notifications: ^17.0.0
   sentry_flutter: ^8.13.2
+  app_links: ^7.0.0
 
 
 dev_dependencies:

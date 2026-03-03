@@ -25,6 +25,20 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Custom scheme: sonar://profile, sonar://post/123 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sonar" />
+            </intent-filter>
+            <!-- HTTPS App Links: https://sonarapp.io/profile/123, https://sonarapp.io/post/123 -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="sonarapp.io" />
+            </intent-filter>
         </activity>
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"

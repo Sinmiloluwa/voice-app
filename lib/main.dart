@@ -8,8 +8,10 @@ import 'package:provider/provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:voiceapp/firebase_options.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
+import 'package:voiceapp/providers/deep_link_provider.dart';
 import 'package:voiceapp/providers/feed_provider.dart';
 import 'package:voiceapp/providers/profile_provider.dart';
+import 'package:voiceapp/services/deep_link_service.dart';
 import 'package:voiceapp/screens/main_screen.dart';
 import 'package:voiceapp/screens/splash_screen.dart';
 import 'package:voiceapp/screens/login_screen.dart';
@@ -115,6 +117,10 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _setupFCM();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = navigatorKey.currentContext!.read<DeepLinkProvider>();
+      DeepLinkService(provider).init();
+    });
   }
 
   Future<void> _sendFcmToken(String token) async {
@@ -189,6 +195,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => FeedProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => DeepLinkProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

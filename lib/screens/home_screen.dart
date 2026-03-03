@@ -140,6 +140,9 @@ class _Header extends StatelessWidget {
                   .watch<AuthProvider>()
                   .user
                   ?.profilePicture;
+                  print(context
+                  .watch<AuthProvider>()
+                  .user);
               return GestureDetector(
                 onTap: onProfileTap,
                 child: Container(
