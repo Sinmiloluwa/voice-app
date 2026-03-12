@@ -45,6 +45,8 @@
 	<string>436648307274-tdlhrrv14kdvt59e2purgdjvm0lji1et.apps.googleusercontent.com</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app requires your location to find users near you</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app requires microphone access to capture voice input and enable voice-based interaction.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
