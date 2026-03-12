@@ -36,10 +36,19 @@ class _CreatorCardState extends State<CreatorCard> {
             child: CircleAvatar(
               radius: 30,
               backgroundColor: Colors.grey[800],
-              backgroundImage: (widget.imageUrl.isNotEmpty)
+              backgroundImage: widget.imageUrl.isNotEmpty
                   ? CachedNetworkImageProvider(widget.imageUrl)
-                  : const AssetImage('assets/images/placeholder.png')
-                        as ImageProvider,
+                  : null,
+              child: widget.imageUrl.isEmpty
+                  ? Text(
+                      widget.name.isNotEmpty ? widget.name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    )
+                  : null,
             ),
           ),
           const SizedBox(height: 8),

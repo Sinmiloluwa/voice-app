@@ -10,6 +10,7 @@ import 'package:voiceapp/firebase_options.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
 import 'package:voiceapp/providers/deep_link_provider.dart';
 import 'package:voiceapp/providers/feed_provider.dart';
+import 'package:voiceapp/providers/location_provider.dart';
 import 'package:voiceapp/providers/profile_provider.dart';
 import 'package:voiceapp/services/deep_link_service.dart';
 import 'package:voiceapp/screens/main_screen.dart';
@@ -196,6 +197,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => FeedProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => DeepLinkProvider()),
+        ChangeNotifierProvider(create: (_) => LocationProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

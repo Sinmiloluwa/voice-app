@@ -6,6 +6,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
 import 'package:voiceapp/providers/feed_provider.dart';
+import 'package:voiceapp/providers/location_provider.dart';
 import 'package:voiceapp/widgets/audio_card.dart';
 import 'package:voiceapp/widgets/creator_card.dart';
 import 'package:voiceapp/widgets/custom_tab_bar.dart';
@@ -24,6 +25,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   final _searchController = TextEditingController();
   Timer? _debounce;
   bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LocationProvider>().loadNearbyUsers();
+    });
+  }
 
   @override
   void dispose() {
@@ -45,29 +54,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   final backgroundImage = "https://images.unsplash.com/photo-1453738773917-9c3eff1db985?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
-
-  final List<Map<String, String>> creators = [
-    {
-      'imageUrl':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCh7WF8XyNrY_y_AENhV-yU0u320JrPVDZVOjWTIRZTPZ5SAkyMx8cA7r_txCShmJlMrjkRyglj3WgTThrZM6j0TL8F18mQJgjMv2atl8Szwa6XPj8tQZu1NSqoBHrMj3vBxgMb2ocsOUTZgUOMyhln43HDURkqcwPXD_0CrnGUt3qxL_UL7sWU0tzdFUhmaKTiztb99MwbrNfTF82dUyZG_j9Ce3PGPqzcx60nufOE_f4ZOgLon6z0tmiBMHCs8dm7ZM48oOyrY-k',
-      'name': 'Sanjay',
-    },
-    {
-      'imageUrl':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDeZ2dXYhnFS003wnZ6msEjeWQOmI2A79EedmSOx1t6rFXQPV3z8i5dSU7PuomSWq5aVDmLlNf5dOiAwQM4NchKEDQIl23tmU9px-mRYHsF8TOuuPsDaQH_ROFIUikg5S7bI4I4nGiN3NtqZFz9OlwtpawzKMsFUCrWRvn8RMyJDdl9JVaRnGRy37e4voiHwnE8gm_s5d41Bn9ERyKNoWpc9QYCavSvRp6k2hdIc__JkQZ0Iwr8ZzJPkIjADAcR0mEFEiYttpMI8wE',
-      'name': 'Kilman',
-    },
-    {
-      'imageUrl':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDktDTkT1_c1sen2KSMOzRH3toggZVH6s5cE0c85KIKWLDKkwResLg7iOmTun26rG1Po1ANa7kXwxdzmieOi7DHPJR6jMVMAGDtTHQB8lv6RG0bRoSJt0phPJKVxlBJoc9s2qxQ0go-YEPXMNdsK2bHnuZkBk6goAYruiHQiLRwU5-Ng-U_UchXrn37DP7kR1vU_8UIDP-QqLvOPS7gn5Dx9ZNvlx1Dl0D_6x-KPlxahB4UQR3vMcOMNTw1Yyhib3Kqd6RiGCdlWPU',
-      'name': 'Remote',
-    },
-    {
-      'imageUrl':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuBzhoZVHbEYm5sLGQT7i5zaSb-x93X1cokRyIgPHgBfrbgV80dt_w-zu5U63eyFjiNcv4P38FR8jdyQvybjygozjWaS_AfPOjs9Fnqi2i7Lat8EIJI96BNs_ut8FYZLSLIyGY3M3JlSNQk90LF3YMwyATw66SkXAH4gqn_rmbckAkWzlY3XVI9JL0BQ4xbePx0WNGeXYQrDILiL7c4yNhDvZPO_UyN7GYBw0o7DMwK3OOeAk78fQ_XPpzzxpP3cLVcOQ5Ub4TPfJd4',
-      'name': 'Shanks',
-    },
-  ];
 
   final List<Map<String, String>> audioCards = [
     {
@@ -386,21 +372,71 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     ),
 
                     const SizedBox(height: 8),
-                    SizedBox(
-                      height: 200,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: creators.length,
-                        itemBuilder: (context, index) {
-                          final creator = creators[index];
-                          return CreatorCard(
-                            imageUrl: creator['imageUrl']!,
-                            name: creator['name']!,
+                    Consumer<LocationProvider>(
+                      builder: (context, location, _) {
+                        if (location.isLoading) {
+                          return const SizedBox(
+                            height: 200,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Constants.primaryColor,
+                              ),
+                            ),
                           );
-                        },
-                      ),
+                        }
+                        if (location.locationDenied || location.locationServiceDisabled) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.location_off, color: Colors.white38, size: 20),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      location.locationServiceDisabled
+                                          ? 'Enable location services to find nearby users'
+                                          : 'Allow location access to find users near you',
+                                      style: const TextStyle(color: Colors.white54, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        if (location.error != null || location.nearbyUsers.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Text(
+                              location.error != null ? 'Could not load nearby users' : 'No users found nearby',
+                              style: const TextStyle(color: Colors.white38, fontSize: 13),
+                            ),
+                          );
+                        }
+                        return SizedBox(
+                          height: 200,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: location.nearbyUsers.length,
+                            itemBuilder: (context, index) {
+                              final user = location.nearbyUsers[index];
+                              return CreatorCard(
+                                imageUrl: user.profilePicture ?? '',
+                                name: user.username,
+                              );
+                            },
+                          ),
+                        );
+                      },
                     ),
                   ],
 

@@ -27,4 +27,22 @@ class UserService {
     final res = await api.get("/user/following");
     return (res.data as List).map((e) => UserModel.fromJson(e)).toList();
   }
+
+  Future<void> updateLocation(double latitude, double longitude) async {
+    await api.put('/user/location', data: {
+      'latitude': latitude,
+      'longitude': longitude,
+    });
+  }
+
+  Future<List<UserModel>?> getNearbyUsers(double latitude, double longitude, {int radius = 50}) async {
+    try {
+      final res = await api.get('/user/nearby');
+      final list = res.data['nearbyUsers'] as List;
+      return list.map((e) => UserModel.fromJson(e)).toList();
+    } catch (e) {
+      print('getNearbyUsers error: ${e.toString()}');
+      return null;
+    }
+  }
 }
