@@ -18,6 +18,7 @@ import 'package:voiceapp/screens/splash_screen.dart';
 import 'package:voiceapp/screens/login_screen.dart';
 import 'package:voiceapp/screens/register_screen.dart';
 import 'package:voiceapp/screens/view_screen.dart';
+import 'package:voiceapp/screens/profile_screen.dart';
 import 'package:voiceapp/services/auth_service.dart';
 import 'package:voiceapp/services/logger.dart';
 
@@ -227,6 +228,16 @@ class _MyAppState extends State<MyApp> {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/view': (context) => const ViewScreen(),
+        },
+        onGenerateRoute: (settings) {
+          if (settings.name == '/profile') {
+            final userId = settings.arguments as String?;
+            return MaterialPageRoute(
+              builder: (_) => ProfileScreen(userId: userId),
+              settings: settings,
+            );
+          }
+          return null;
         },
       ),
     );

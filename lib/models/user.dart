@@ -19,13 +19,13 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json["id"] ?? json["_id"],
-      username: json["username"],
-      profilePicture: json["profilePicture"],
+      id: json["id"] ?? json["_id"] ?? '',
+      username: json["username"] ?? '',
+      profilePicture: json["profilePicture"] ?? "",
       bio: json["bio"],
-      followerCount: json["followerCount"] ?? 0,
-      followingCount: json["followingCount"] ?? 0,
-      playCount: json["playCount"] ?? 0,
+      followerCount: json["followers"] ?? 0,
+      followingCount: json["following"] ?? 0,
+      playCount: json["totalPlays"] ?? 0,
     );
   }
 }

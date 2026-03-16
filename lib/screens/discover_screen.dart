@@ -13,7 +13,9 @@ import 'package:voiceapp/widgets/custom_tab_bar.dart';
 import 'package:voiceapp/widgets/shimmer_loaders.dart';
 
 class DiscoverScreen extends StatefulWidget {
-  const DiscoverScreen({super.key});
+  final void Function(String userId)? onUserProfileTap;
+
+  const DiscoverScreen({super.key, this.onUserProfileTap});
 
   @override
   State<DiscoverScreen> createState() => _DiscoverScreenState();
@@ -432,6 +434,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                               return CreatorCard(
                                 imageUrl: user.profilePicture ?? '',
                                 name: user.username,
+                                onTap: () => widget.onUserProfileTap?.call(user.id),
                               );
                             },
                           ),

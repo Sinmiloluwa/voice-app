@@ -7,6 +7,14 @@ import 'package:voiceapp/models/user.dart';
 class UserService {
   final api = ApiClient().dio;
 
+  Future<UserModel> getUserById(String userId) async {
+    final res = await api.get('/user/$userId/profile');
+    final data = res.data is Map && res.data['user'] != null
+        ? res.data['user']
+        : res.data;
+    return UserModel.fromJson(data);
+  }
+
   Future<Uint8List> getProfileQrCode() async {
     final res = await api.get('/user/profile/qr');
     final raw = res.data is String ? res.data as String : res.data['qr'] as String;

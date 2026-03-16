@@ -16,8 +16,9 @@ import 'package:voiceapp/widgets/shimmer_loaders.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onProfileTap;
+  final void Function(String userId)? onUserProfileTap;
 
-  const HomeScreen({super.key, this.onProfileTap});
+  const HomeScreen({super.key, this.onProfileTap, this.onUserProfileTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -106,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemBuilder: (context, index) {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: _AudioCard(post: feedProvider.posts[index]),
+                            child: _AudioCard(post: feedProvider.posts[index], onUserProfileTap: widget.onUserProfileTap),
                           );
                         },
                       );
@@ -140,9 +141,6 @@ class _Header extends StatelessWidget {
                   .watch<AuthProvider>()
                   .user
                   ?.profilePicture;
-                  print(context
-                  .watch<AuthProvider>()
-                  .user);
               return GestureDetector(
                 onTap: onProfileTap,
                 child: Container(
@@ -247,8 +245,9 @@ class _TabBar extends StatelessWidget {
 
 class _AudioCard extends StatefulWidget {
   final VoicePost post;
+  final void Function(String userId)? onUserProfileTap;
 
-  const _AudioCard({required this.post});
+  const _AudioCard({required this.post, this.onUserProfileTap});
 
   @override
   State<_AudioCard> createState() => _AudioCardState();
@@ -319,17 +318,25 @@ class _AudioCardState extends State<_AudioCard> with TickerProviderStateMixin {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Constants.primaryColor,
-                      child: Text(
-                        widget.post.username.isNotEmpty
-                            ? widget.post.username[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    GestureDetector(
+                      onTap: () => widget.onUserProfileTap?.call(widget.post.userId),
+                      child: CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Constants.primaryColor,
+                        backgroundImage: (widget.post.avatarUrl != null && widget.post.avatarUrl!.isNotEmpty)
+                            ? CachedNetworkImageProvider(widget.post.avatarUrl!)
+                            : null,
+                        child: (widget.post.avatarUrl == null || widget.post.avatarUrl!.isEmpty)
+                            ? Text(
+                                widget.post.username.isNotEmpty
+                                    ? widget.post.username[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
                       ),
                     ),
                     const SizedBox(width: 12),

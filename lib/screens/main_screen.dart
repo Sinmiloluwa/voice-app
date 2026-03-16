@@ -17,6 +17,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedTabIndex = 0;
   int _selectedNavIndex = 0;
+  String? _viewedUserId;
 
 late final List<Widget> _screens;
 
@@ -26,13 +27,12 @@ void initState() {
 
   _screens = [
     HomeScreen(
-      onProfileTap: () {
-        setState(() {
-          _selectedNavIndex = 3;
-        });
-      },
+      onProfileTap: () => setState(() => _selectedNavIndex = 3),
+      onUserProfileTap: (userId) => setState(() => _viewedUserId = userId),
     ),
-    const DiscoverScreen(),
+    DiscoverScreen(
+      onUserProfileTap: (userId) => setState(() => _viewedUserId = userId),
+    ),
     const NotificationScreen(),
     ProfileScreen(
       onBack: () => setState(() => _selectedNavIndex = 0),
@@ -63,7 +63,17 @@ void initState() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedNavIndex, children: _screens),
+      body: Stack(
+        children: [
+          IndexedStack(index: _selectedNavIndex, children: _screens),
+          if (_viewedUserId != null)
+            ProfileScreen(
+              key: ValueKey(_viewedUserId),
+              userId: _viewedUserId,
+              onBack: () => setState(() => _viewedUserId = null),
+            ),
+        ],
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         elevation: 6,

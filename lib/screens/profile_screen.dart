@@ -5,13 +5,17 @@ import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
 import 'package:voiceapp/providers/auth_provider.dart';
 import 'package:voiceapp/providers/profile_provider.dart';
+import 'package:voiceapp/models/user.dart';
 import 'package:voiceapp/services/user_service.dart';
 import 'package:voiceapp/widgets/shimmer_loaders.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback? onBack;
+  final String? userId;
 
-  const ProfileScreen({super.key, this.onBack});
+  const ProfileScreen({super.key, this.onBack, this.userId});
+
+  bool get isOwnProfile => userId == null;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -22,6 +26,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   int _selectedTabIndex = 0;
   int? _playingSnippetIndex;
   late AnimationController _waveformController;
+  UserModel? _viewedUser;
+  bool _loadingUser = false;
 
   @override
   void initState() {
@@ -32,7 +38,27 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProfileProvider>().loadMyUploads();
+      if (!widget.isOwnProfile) _loadUser();
     });
+  }
+
+  Future<void> _loadUser() async {
+    setState(() => _loadingUser = true);
+    try {
+      final user = await UserService().getUserById(widget.userId!);
+      if (mounted) setState(() { _viewedUser = user; _loadingUser = false; });
+    } catch (e) {
+      if (mounted) setState(() => _loadingUser = false);
+    }
+  }
+
+  Future<void> _follow() async {
+    try {
+      await UserService().followUser(widget.userId!);
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (mounted) setState(() {});
+    }
   }
 
   @override
@@ -55,37 +81,50 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isOwn = widget.isOwnProfile;
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _loadingUser
+            ? SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _ProfileHeader(onBack: widget.onBack, isOwnProfile: false),
+                    const SizedBox(height: 24),
+                    const ProfileHeaderShimmer(),
+                  ],
+                ),
+              )
+            : SingleChildScrollView(
           child: Column(
             children: [
-              _ProfileHeader(onBack: widget.onBack),
+              _ProfileHeader(onBack: widget.onBack, isOwnProfile: isOwn),
               const SizedBox(height: 24),
               Consumer<AuthProvider>(
                 builder: (context, auth, _) {
-                  final user = auth.user;
+                  final user = isOwn ? auth.user : _viewedUser;
                   return _Avatar(
-                    profileImage: user?.profilePicture ?? 'assets/icons/profile.png'
-                    );
+                    profileImage: user?.profilePicture ?? '',
+                    username: user?.username ?? '',
+                  );
                 }
               ),
               const SizedBox(height: 16),
               Consumer<AuthProvider>(
                 builder: (context, auth, _) {
-                  final user = auth.user;
+                  final user = isOwn ? auth.user : _viewedUser;
                   return _UserInfo(
-                    username: user?.username ?? 'user',
-                    bio: user?.bio ?? 'user',
+                    username: user?.username ?? '',
+                    bio: user?.bio ?? '',
                   );
                 },
               ),
               const SizedBox(height: 24),
-              // const _ActionButtons(),
+              _ActionButtons(isOwnProfile: isOwn, userId: widget.userId, onFollow: _follow),
               const SizedBox(height: 24),
+              const Divider(height: 1, thickness: 1, color: Color(0xFF2A2A2A)),
               Consumer<AuthProvider>(
                 builder: (context, auth, _) {
-                  final user = auth.user;
+                  final user = isOwn ? auth.user : _viewedUser;
                   return _StatsRow(
                     followers: user?.followerCount ?? 0,
                     following: user?.followingCount ?? 0,
@@ -93,8 +132,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                   );
                 },
               ),
-              const SizedBox(height: 24),
+              const Divider(height: 1, thickness: 1, color: Color(0xFF2A2A2A)),
+              const SizedBox(height: 44),
               _TabBar(
+                isOwnProfile: isOwn,
                 selectedIndex: _selectedTabIndex,
                 onTabSelected: (index) {
                   setState(() {
@@ -180,8 +221,9 @@ class _ProfileScreenState extends State<ProfileScreen>
 
 class _ProfileHeader extends StatelessWidget {
   final VoidCallback? onBack;
+  final bool isOwnProfile;
 
-  const _ProfileHeader({this.onBack});
+  const _ProfileHeader({this.onBack, this.isOwnProfile = true});
 
   @override
   Widget build(BuildContext context) {
@@ -202,54 +244,57 @@ class _ProfileHeader extends StatelessWidget {
               color: Colors.white,
             ),
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'logout') {
-                await context.read<AuthProvider>().logout();
-                if (context.mounted) {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context, '/login', (route) => false,
-                  );
+          if (isOwnProfile)
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                if (value == 'logout') {
+                  await context.read<AuthProvider>().logout();
+                  if (context.mounted) {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context, '/login', (route) => false,
+                    );
+                  }
+                } else if (value == 'Share Profile') {
+                  final userId = context.read<AuthProvider>().user?.id ?? '';
+                  final link = 'https://sonarapp.io/profile/$userId';
+                  if (context.mounted) {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => _ShareProfileSheet(link: link),
+                    );
+                  }
                 }
-              } else if (value == 'Share Profile') {
-                final userId = context.read<AuthProvider>().user?.id ?? '';
-                final link = 'https://sonarapp.io/profile/$userId';
-                if (context.mounted) {
-                  showModalBottomSheet(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => _ShareProfileSheet(link: link),
-                  );
-                }
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'logout',
-                child: Text('Logout'),
-              ),
-              const PopupMenuItem(
-                value: 'Share Profile',
-                padding: EdgeInsets.zero,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Text('Share'),
-                    Icon(Icons.ios_share, size: 23,)
-                  ],
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'logout',
+                  child: Text('Logout'),
                 ),
+                const PopupMenuItem(
+                  value: 'Share Profile',
+                  padding: EdgeInsets.zero,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Text('Share'),
+                      Icon(Icons.ios_share, size: 23),
+                    ],
+                  ),
+                ),
+              ],
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.more_horiz, color: Colors.white, size: 20),
               ),
-            ],
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.more_horiz, color: Colors.white, size: 20),
-            ),
-          ),
+            )
+          else
+            const SizedBox(width: 36),
         ],
       ),
     );
@@ -258,38 +303,49 @@ class _ProfileHeader extends StatelessWidget {
 
 class _Avatar extends StatelessWidget {
   final String? profileImage;
+  final String username;
 
-  const _Avatar({this.profileImage});
+  const _Avatar({this.profileImage, this.username = ''});
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = profileImage != null && profileImage!.isNotEmpty && !profileImage!.startsWith('assets/');
     return Container(
       width: 110,
       height: 110,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: Constants.primaryColor.withOpacity(0.6),
+          color: Constants.primaryColor.withValues(alpha: 0.6),
           width: 3,
         ),
       ),
       child: ClipOval(
-        child: Image.asset(
-          profileImage!,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return CircleAvatar(
-              radius: 52,
-              backgroundColor: Constants.primaryColor.withOpacity(0.2),
-              child: const Icon(
-                Icons.person,
-                size: 48,
+        child: hasImage
+            ? Image.network(
+                profileImage!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _placeholder(),
+              )
+            : _placeholder(),
+      ),
+    );
+  }
+
+  Widget _placeholder() {
+    return CircleAvatar(
+      radius: 52,
+      backgroundColor: Constants.primaryColor.withValues(alpha: 0.2),
+      child: username.isNotEmpty
+          ? Text(
+              username[0].toUpperCase(),
+              style: const TextStyle(
+                fontSize: 40,
+                fontWeight: FontWeight.bold,
                 color: Constants.primaryColor,
               ),
-            );
-          },
-        ),
-      ),
+            )
+          : const Icon(Icons.person, size: 48, color: Constants.primaryColor),
     );
   }
 }
@@ -418,16 +474,48 @@ class _StatsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: _StatCard(value: _formatCount(followers), label: 'FOLLOWERS')),
-          const SizedBox(width: 10),
-          Expanded(child: _StatCard(value: _formatCount(following), label: 'FOLLOWING')),
-          const SizedBox(width: 10),
-          Expanded(child: _StatCard(value: _formatCount(plays), label: 'PLAYS')),
+          _StatBasic(value: followers.toString(), label: 'FOLLOWERS'),
+          _StatBasic(value: following.toString(), label: 'FOLLOWING'),
+          _StatBasic(value: plays.toString(), label: 'PLAYS'),
         ],
+        // children: [
+        //   Expanded(child: _StatCard(value: _formatCount(followers), label: 'FOLLOWERS')),
+        //   const SizedBox(width: 10),
+        //   Expanded(child: _StatCard(value: _formatCount(following), label: 'FOLLOWING')),
+        //   const SizedBox(width: 10),
+        //   Expanded(child: _StatCard(value: _formatCount(plays), label: 'PLAYS')),
+        // ],
       ),
+    );
+  }
+}
+
+class _StatBasic extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _StatBasic({
+    required this.value,
+    required this.label,
+  });
+
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(
+          fontWeight: FontWeight.w400
+        )),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(
+          fontWeight: FontWeight.bold))
+      ]
     );
   }
 }
@@ -475,13 +563,14 @@ class _StatCard extends StatelessWidget {
 
 class _TabBar extends StatelessWidget {
   final int selectedIndex;
+  final bool isOwnProfile;
   final Function(int) onTabSelected;
 
-  const _TabBar({required this.selectedIndex, required this.onTabSelected});
+  const _TabBar({required this.selectedIndex, required this.onTabSelected, required this.isOwnProfile});
 
   @override
   Widget build(BuildContext context) {
-    final tabs = ['Snippets', 'Liked', 'About'];
+    final tabs = ['Snippets', 'Liked', isOwnProfile ? 'Series' : 'About'];
 
     return Container(
       decoration: BoxDecoration(
@@ -841,3 +930,96 @@ class Snippet {
     required this.totalTime,
   });
 }
+
+class _ActionButtons extends StatefulWidget {
+  final bool isOwnProfile;
+  final String? userId;
+  final Future<void> Function()? onFollow;
+
+  const _ActionButtons({this.isOwnProfile = true, this.userId, this.onFollow});
+
+  @override
+  State<_ActionButtons> createState() => _ActionButtonsState();
+}
+
+class _ActionButtonsState extends State<_ActionButtons> {
+  bool _isFollowing = false;
+  bool _followLoading = false;
+
+  Future<void> _handleFollow() async {
+    if (_followLoading) return;
+    setState(() => _followLoading = true);
+    try {
+      await widget.onFollow?.call();
+      if (mounted) setState(() { _isFollowing = !_isFollowing; _followLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _followLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> buttons = widget.isOwnProfile
+        ? [
+            Expanded(
+              child: TextButton(
+                style: TextButton.styleFrom(backgroundColor: const Color(0xFF1E293B)),
+                onPressed: () {},
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('Edit Profile', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: TextButton(
+                style: TextButton.styleFrom(backgroundColor: const Color(0xFFafc12b)),
+                onPressed: () {},
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('Share', style: TextStyle(color: Colors.black)),
+                ),
+              ),
+            ),
+          ]
+        : [
+            Expanded(
+              child: TextButton(
+                style: TextButton.styleFrom(backgroundColor: const Color(0xFF1E293B)),
+                onPressed: _followLoading ? null : _handleFollow,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: _followLoading
+                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(
+                          _isFollowing ? 'Unfollow' : 'Follow',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: TextButton(
+                style: TextButton.styleFrom(backgroundColor: const Color(0xFFafc12b)),
+                onPressed: () {},
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('Message', style: TextStyle(color: Colors.black)),
+                ),
+              ),
+            ),
+          ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: buttons,
+      ),
+    );
+  }
+} 
+
+

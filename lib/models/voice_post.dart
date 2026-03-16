@@ -43,7 +43,7 @@ class VoicePost {
       username: isUserObject
           ? (user["username"] ?? "")
           : (json["username"] ?? ""),
-      avatarUrl: isUserObject ? user["avatarUrl"] : json["avatarUrl"],
+      avatarUrl: isUserObject ? user["profilePicture"] : json["profilePicture"],
       audioUrl: json["audioUrl"] ?? "",
       duration: json["duration"] ?? 0,
       title: json["title"],

@@ -155,6 +155,76 @@ class DiscoverSearchShimmer extends StatelessWidget {
   }
 }
 
+/// Shimmer loader for ProfileScreen header — mimics avatar, name, bio, stats, action buttons.
+class ProfileHeaderShimmer extends StatelessWidget {
+  const ProfileHeaderShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: _baseColor,
+      highlightColor: _highlightColor,
+      child: Column(
+        children: [
+          // Avatar
+          const Center(
+            child: _ShimmerBox(width: 110, height: 110, borderRadius: 55),
+          ),
+          const SizedBox(height: 16),
+          // Username
+          const Center(child: _ShimmerBox(width: 140, height: 20)),
+          const SizedBox(height: 10),
+          // Bio
+          const Center(child: _ShimmerBox(width: 200, height: 14)),
+          const SizedBox(height: 8),
+          // Location
+          const Center(child: _ShimmerBox(width: 100, height: 12)),
+          const SizedBox(height: 24),
+          // Action buttons
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Row(
+              children: const [
+                Expanded(child: _ShimmerBox(width: double.infinity, height: 42, borderRadius: 8)),
+                SizedBox(width: 20),
+                Expanded(child: _ShimmerBox(width: double.infinity, height: 42, borderRadius: 8)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Stats row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                _StatShimmer(),
+                _StatShimmer(),
+                _StatShimmer(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatShimmer extends StatelessWidget {
+  const _StatShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: const [
+        _ShimmerBox(width: 40, height: 16),
+        SizedBox(height: 6),
+        _ShimmerBox(width: 70, height: 12),
+      ],
+    );
+  }
+}
+
 /// Shimmer loader for ProfileScreen uploads — mimics the _SnippetCard layout.
 class ProfileSnippetsShimmer extends StatelessWidget {
   const ProfileSnippetsShimmer({super.key});

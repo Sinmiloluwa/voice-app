@@ -5,8 +5,9 @@ import 'package:voiceapp/assets/constants.dart';
 class CreatorCard extends StatefulWidget {
   final String imageUrl;
   final String name;
+  final VoidCallback? onTap;
 
-  const CreatorCard({super.key, required this.imageUrl, required this.name});
+  const CreatorCard({super.key, required this.imageUrl, required this.name, this.onTap});
 
   @override
   State<CreatorCard> createState() => _CreatorCardState();
@@ -15,7 +16,9 @@ class CreatorCard extends StatefulWidget {
 class _CreatorCardState extends State<CreatorCard> {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
       width: 140,
       margin: const EdgeInsets.symmetric(horizontal: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -85,6 +88,7 @@ class _CreatorCardState extends State<CreatorCard> {
           ),
         ],
       ),
+    ),
     );
   }
 }
