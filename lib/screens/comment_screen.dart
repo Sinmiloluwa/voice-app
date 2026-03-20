@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:io';
 import 'dart:math';
+import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
+import 'package:provider/provider.dart';
 import 'package:voiceapp/assets/constants.dart';
+import 'package:voiceapp/providers/comment_provider.dart';
+import 'package:voiceapp/models/voice_comment.dart';
+
+enum RecordingState { idle, recording, stopped }
 
 class CommentScreen extends StatefulWidget {
   final String postId;
@@ -35,45 +45,21 @@ class _CommentScreenState extends State<CommentScreen>
   late AnimationController _waveformController;
   bool _isPlayingOriginal = false;
   bool _isPlayingComment = false;
-  int? _playingCommentId;
-  String _sortFilter = 'Recent';
+  String? _playingCommentId;
+  String _sortFilter = 'recent';
   final TextEditingController _replyController = TextEditingController();
-
-  final List<VoiceComment> comments = [
-    VoiceComment(
-      id: 1,
-      username: '@jamie_vibe',
-      displayName: 'Jamie Vibe',
-      avatar: 'assets/avatar_1.jpg',
-      timeAgo: '12m ago',
-      audioUrl: 'assets/audio/comment1.mp3',
-      duration: '0:15',
-      likes: 24,
-      replies: 0,
-    ),
-    VoiceComment(
-      id: 2,
-      username: '@marcus_digital',
-      displayName: 'Marcus Digital',
-      avatar: 'assets/avatar_2.jpg',
-      timeAgo: '45m ago',
-      audioUrl: 'assets/audio/comment2.mp3',
-      duration: '0:08',
-      likes: 12,
-      replies: 2,
-    ),
-    VoiceComment(
-      id: 3,
-      username: '@sarah_sonic',
-      displayName: 'Sarah Sonic',
-      avatar: 'assets/avatar_3.jpg',
-      timeAgo: '1h ago',
-      audioUrl: 'assets/audio/comment3.mp3',
-      duration: '0:22',
-      likes: 45,
-      replies: 5,
-    ),
-  ];
+  
+  // Recording variables
+  final _recorder = AudioRecorder();
+  final _player = AudioPlayer();
+  RecordingState _recordingState = RecordingState.idle;
+  Duration _recordedDuration = Duration.zero;
+  Timer? _timer;
+  String? _recordedFilePath;
+  double _amplitude = 0.0;
+  bool _isUploading = false;
+  
+  static const _maxDuration = Duration(minutes: 3, seconds: 45);
 
   @override
   void initState() {
@@ -82,12 +68,20 @@ class _CommentScreenState extends State<CommentScreen>
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
+    
+    // Load comments from API
+    Future.microtask(() {
+      context.read<CommentProvider>().loadComments(widget.postId, sortBy: _sortFilter);
+    });
   }
 
   @override
   void dispose() {
     _waveformController.dispose();
     _replyController.dispose();
+    _timer?.cancel();
+    _recorder.dispose();
+    _player.dispose();
     super.dispose();
   }
 
@@ -102,21 +96,175 @@ class _CommentScreenState extends State<CommentScreen>
     });
   }
 
-  void _togglePlaybackComment(int commentId) {
-    setState(() {
+  Future<void> _togglePlaybackComment(String commentId, String audioUrl) async {
+    try {
+      
       if (_playingCommentId == commentId) {
-        _isPlayingComment = !_isPlayingComment;
+        // Toggle play/pause
         if (_isPlayingComment) {
-          _waveformController.repeat();
+          await _player.pause();
+          _waveformController.stop();
         } else {
+          await _player.play();
+          _waveformController.repeat();
+        }
+        setState(() {
+          _isPlayingComment = !_isPlayingComment;
+        });
+      } else {
+        // Stop previous and play new
+        if (_playingCommentId != null) {
+          await _player.stop();
           _waveformController.stop();
         }
-      } else {
-        _playingCommentId = commentId;
-        _isPlayingComment = true;
+        
+        print('Setting audio source from URL: $audioUrl');
+        await _player.setUrl(audioUrl);
+        await _player.play();
         _waveformController.repeat();
+        
+        setState(() {
+          _playingCommentId = commentId;
+          _isPlayingComment = true;
+        });
+        
+        // Listen for playback completion
+        _player.playerStateStream.listen((state) {
+          if (state.processingState == ProcessingState.completed) {
+            if (mounted) {
+              setState(() {
+                _isPlayingComment = false;
+                _playingCommentId = null;
+              });
+              _waveformController.stop();
+            }
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error playing audio: $e')),
+        );
+      }
+    }
+  }
+
+  // Recording methods
+  Future<void> _startRecording() async {
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Microphone permission denied')),
+        );
+      }
+      return;
+    }
+
+    final dir = await getTemporaryDirectory();
+    _recordedFilePath = '${dir.path}/comment_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await _recorder.start(
+      const RecordConfig(encoder: AudioEncoder.aacLc),
+      path: _recordedFilePath!,
+    );
+
+    _recordedDuration = Duration.zero;
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (_) async {
+      if (!mounted) return;
+
+      final amp = await _recorder.getAmplitude();
+      final normalized = ((amp.current + 60) / 60).clamp(0.0, 1.0);
+
+      setState(() {
+        _recordedDuration += const Duration(milliseconds: 100);
+        _amplitude = normalized;
+      });
+
+      if (_recordedDuration >= _maxDuration) {
+        await _stopRecording();
       }
     });
+
+    setState(() => _recordingState = RecordingState.recording);
+  }
+
+  Future<void> _stopRecording() async {
+    _timer?.cancel();
+    _timer = null;
+    await _recorder.stop();
+    setState(() {
+      _recordingState = RecordingState.stopped;
+      _amplitude = 0.0;
+    });
+  }
+
+  Future<void> _discardRecording() async {
+    await _player.stop();
+
+    if (_recordedFilePath != null) {
+      final file = File(_recordedFilePath!);
+      if (await file.exists()) await file.delete();
+      _recordedFilePath = null;
+    }
+
+    setState(() {
+      _recordingState = RecordingState.idle;
+      _recordedDuration = Duration.zero;
+      _replyController.clear();
+    });
+  }
+
+  Future<void> _postComment() async {
+    if (_recordedFilePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please record a comment first')),
+      );
+      return;
+    }
+
+    final file = File(_recordedFilePath!);
+    if (!await file.exists()) {
+      return;
+    }
+
+    setState(() => _isUploading = true);
+    try {
+      final success = await context.read<CommentProvider>().postComment(
+            widget.postId,
+            audioFile: file,
+            duration: _recordedDuration.inSeconds,
+          );
+
+      if (success) {
+        await _discardRecording();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Comment posted!')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to post comment')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   @override
@@ -158,12 +306,46 @@ class _CommentScreenState extends State<CommentScreen>
                         },
                       ),
                       const SizedBox(height: 16),
-                      _CommentsList(
-                        comments: comments,
-                        playingCommentId: _playingCommentId,
-                        isPlayingComment: _isPlayingComment,
-                        onCommentPlayPressed: _togglePlaybackComment,
-                        animationController: _waveformController,
+                      Consumer<CommentProvider>(
+                        builder: (context, commentProvider, _) {
+                          if (commentProvider.isLoading) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4E157)),
+                              ),
+                            );
+                          }
+                          
+                          if (commentProvider.error != null) {
+                            return Center(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Error: ${commentProvider.error}',
+                                    style: const TextStyle(color: Colors.white70),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      commentProvider.loadComments(widget.postId, sortBy: _sortFilter);
+                                    },
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          
+                          return _CommentsList(
+                            comments: commentProvider.comments,
+                            playingCommentId: _playingCommentId,
+                            isPlayingComment: _isPlayingComment,
+                            onCommentPlayPressed: (commentId, audioUrl) {
+                              _togglePlaybackComment(commentId, audioUrl);
+                            },
+                            animationController: _waveformController,
+                          );
+                        },
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -177,7 +359,17 @@ class _CommentScreenState extends State<CommentScreen>
                     ? 0
                     : MediaQuery.of(context).padding.bottom,
               ),
-              child: _ReplyInput(controller: _replyController),
+              child: _ReplyInput(
+                controller: _replyController,
+                recordingState: _recordingState,
+                recordedDuration: _recordedDuration,
+                onStartRecording: _startRecording,
+                onStopRecording: _stopRecording,
+                onPostComment: _postComment,
+                onDiscardRecording: _discardRecording,
+                isUploading: _isUploading,
+                amplitude: _amplitude,
+              ),
             ),
           ],
         ),
@@ -199,7 +391,15 @@ class _Header extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: onBackPressed,
-            child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+            ),
           ),
           const SizedBox(width: 16),
           Column(
@@ -251,17 +451,21 @@ class _OriginalPost extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback onPlayPressed;
   final AnimationController animationController;
-
+  
   const _OriginalPost({
-    required this.author,
-    required this.title,
-    required this.duration,
-    required this.likes,
-    required this.commentCount,
-    required this.isPlaying,
-    required this.onPlayPressed,
-    required this.animationController,
+  required this.author,
+  required this.title,
+  required this.duration,
+  required this.likes,
+  required this.commentCount,
+  required this.isPlaying,
+  required this.onPlayPressed,
+  required this.animationController,
   });
+  
+  void _handlePlayPress() {
+    onPlayPressed();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -335,11 +539,50 @@ class _OriginalPost extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _AudioPlayer(
-            duration: duration,
-            isPlaying: isPlaying,
-            onPlayPressed: onPlayPressed,
-            animationController: animationController,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: _handlePlayPress,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFD4E157),
+                    ),
+                    child: Icon(
+                      isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: Colors.black,
+                      size: 24,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  duration,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -374,14 +617,14 @@ class _AudioPlayer extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback onPlayPressed;
   final AnimationController animationController;
-
+  
   const _AudioPlayer({
     required this.duration,
     required this.isPlaying,
     required this.onPlayPressed,
     required this.animationController,
   });
-
+  
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -564,9 +807,9 @@ class _CommentsHeader extends StatelessWidget {
 
 class _CommentsList extends StatelessWidget {
   final List<VoiceComment> comments;
-  final int? playingCommentId;
+  final String? playingCommentId;
   final bool isPlayingComment;
-  final Function(int) onCommentPlayPressed;
+  final Function(String, String)? onCommentPlayPressed;
   final AnimationController animationController;
 
   const _CommentsList({
@@ -582,12 +825,12 @@ class _CommentsList extends StatelessWidget {
     return Column(
       children: List.generate(
         comments.length,
-        (index) => _CommentCard(
-          comment: comments[index],
-          isPlaying: playingCommentId == comments[index].id && isPlayingComment,
-          onPlayPressed: () => onCommentPlayPressed(comments[index].id),
-          animationController: animationController,
-        ),
+        (index) =>                 _CommentCard(
+                  comment: comments[index],
+                  isPlaying: playingCommentId == comments[index].id && isPlayingComment,
+                  onPlayPressed: onCommentPlayPressed ?? (String commentId, String audioUrl) {},
+                  animationController: animationController,
+                ),
       ),
     );
   }
@@ -596,14 +839,14 @@ class _CommentsList extends StatelessWidget {
 class _CommentCard extends StatelessWidget {
   final VoiceComment comment;
   final bool isPlaying;
-  final VoidCallback onPlayPressed;
+  final Function(String, String) onPlayPressed;
   final AnimationController animationController;
-
+  
   const _CommentCard({
-    required this.comment,
-    required this.isPlaying,
-    required this.onPlayPressed,
-    required this.animationController,
+  required this.comment,
+  required this.isPlaying,
+  required this.onPlayPressed,
+  required this.animationController,
   });
 
   @override
@@ -659,7 +902,7 @@ class _CommentCard extends StatelessWidget {
               child: _AudioPlayer(
                 duration: comment.duration,
                 isPlaying: isPlaying,
-                onPlayPressed: onPlayPressed,
+                onPlayPressed: () => onPlayPressed(comment.id, comment.audioUrl),
                 animationController: animationController,
               ),
             ),
@@ -705,81 +948,217 @@ class _CommentCard extends StatelessWidget {
 
 class _ReplyInput extends StatelessWidget {
   final TextEditingController controller;
-
-  const _ReplyInput({required this.controller});
-
+  final RecordingState recordingState;
+  final Duration recordedDuration;
+  final VoidCallback onStartRecording;
+  final VoidCallback onStopRecording;
+  final VoidCallback onPostComment;
+  final VoidCallback onDiscardRecording;
+  final bool isUploading;
+  final double amplitude;
+  
+  const _ReplyInput({
+    required this.controller,
+    required this.recordingState,
+    required this.recordedDuration,
+    required this.onStartRecording,
+    required this.onStopRecording,
+    required this.onPostComment,
+    required this.onDiscardRecording,
+    required this.isUploading,
+    required this.amplitude,
+  });
+  
+  String _formatDuration(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+  
   @override
   Widget build(BuildContext context) {
+    final isRecording = recordingState == RecordingState.recording;
+    final isStopped = recordingState == RecordingState.stopped;
+    
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: CommentScreen.cardColor,
         border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
       ),
-      child: Row(
+      child: Column(
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: Constants.primaryColor,
-            child: const Text('U', style: TextStyle(color: Colors.black)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: 'Type or record a reply...',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                filled: true,
-                fillColor: Colors.black.withOpacity(0.3),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+          // Show recording indicator if recording
+          if (isRecording) ...[
+            Row(
+              children: [
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.radio_button_checked,
+                  color: Colors.red,
+                  size: 12,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              style: const TextStyle(color: Colors.white),
+                const SizedBox(width: 8),
+                Text(
+                  'Recording... ${_formatDuration(recordedDuration)}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const Spacer(),
+                Text(
+                  'Amplitude: ${(amplitude * 100).toStringAsFixed(0)}%',
+                  style: const TextStyle(color: Colors.white54, fontSize: 10),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () {},
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFD4E157),
-              ),
-              child: const Icon(Icons.mic, color: Colors.black, size: 20),
+            const SizedBox(height: 12),
+          ],
+          // Show recorded duration if stopped
+          if (isStopped) ...[
+            Row(
+              children: [
+                const SizedBox(width: 8),
+                const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                const SizedBox(width: 8),
+                Text(
+                  'Recorded: ${_formatDuration(recordedDuration)}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
             ),
+            const SizedBox(height: 12),
+          ],
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: Constants.primaryColor,
+                child: const Text('U', style: TextStyle(color: Colors.black)),
+              ),
+              const SizedBox(width: 12),
+              if (recordingState == RecordingState.idle)
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                      hintText: 'Type or record a reply...',
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      filled: true,
+                      fillColor: Colors.black.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                )
+              else
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Text(
+                      isStopped ? 'Comment ready to post' : 'Recording...',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              // Microphone button - Start/Stop recording
+              if (recordingState == RecordingState.idle)
+                GestureDetector(
+                  onTap: isUploading ? null : onStartRecording,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFD4E157),
+                    ),
+                    child: Icon(
+                      Icons.mic,
+                      color: Colors.black,
+                      size: isUploading ? 16 : 20,
+                    ),
+                  ),
+                )
+              else if (isRecording)
+                GestureDetector(
+                  onTap: onStopRecording,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFD4E157),
+                    ),
+                    child: const Icon(
+                      Icons.stop,
+                      color: Colors.black,
+                      size: 20,
+                    ),
+                  ),
+                )
+              else if (isStopped)
+                Row(
+                  children: [
+                    // Cancel button
+                    GestureDetector(
+                      onTap: isUploading ? null : onDiscardRecording,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.red.withOpacity(0.3),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.red,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Post button
+                    GestureDetector(
+                      onTap: isUploading ? null : onPostComment,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFFD4E157),
+                        ),
+                        child: isUploading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.send,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
         ],
       ),
     );
   }
-}
-
-class VoiceComment {
-  final int id;
-  final String username;
-  final String displayName;
-  final String avatar;
-  final String timeAgo;
-  final String audioUrl;
-  final String duration;
-  final int likes;
-  final int replies;
-
-  VoiceComment({
-    required this.id,
-    required this.username,
-    required this.displayName,
-    required this.avatar,
-    required this.timeAgo,
-    required this.audioUrl,
-    required this.duration,
-    required this.likes,
-    required this.replies,
-  });
 }
